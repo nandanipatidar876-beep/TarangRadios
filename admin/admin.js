@@ -56,6 +56,15 @@ async function apiRequest(endpoint, method = 'GET', data = null, isFormData = fa
   }
 }
 
+// Image URL Formatter Helper
+function formatImgUrl(url) {
+  if (!url || typeof url !== 'string' || !url.trim()) return 'https://via.placeholder.com/60';
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.startsWith('/')) return trimmed;
+  return `../${trimmed}`;
+}
+
 // Toast Notifications
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
@@ -143,6 +152,9 @@ function showAdminApp() {
 
   if (window.lucide) window.lucide.createIcons();
   loadAllAppData();
+  loadNormalCategoriesTable();
+  loadNormalSubcategoriesTable();
+  loadNormalProductsTable();
 }
 
 async function handleLoginSubmit(e) {
@@ -280,7 +292,7 @@ async function loadDashboardStats() {
       }
       tbody.innerHTML = stats.recentProducts.map(p => `
         <tr>
-          <td><img src="../${p.image || 'https://via.placeholder.com/60'}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" /></td>
+          <td><img src="${formatImgUrl(p.image)}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" /></td>
           <td><strong>${p.name}</strong></td>
           <td><code>${p.sku || 'N/A'}</code></td>
           <td>
@@ -342,7 +354,7 @@ async function loadNormalCategoriesTable() {
         </div>
       </td>
       <td>
-        <img src="../${c.image || 'https://via.placeholder.com/60'}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" />
+        <img src="${formatImgUrl(c.image)}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" />
       </td>
       <td>
         <strong style="font-size:0.95rem;">${c.title}</strong>
@@ -589,7 +601,7 @@ function renderNormalProductsTable() {
   tbody.innerHTML = state.normalProducts.map(p => `
     <tr>
       <td>
-        <img src="../${p.image || 'https://via.placeholder.com/60'}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" />
+        <img src="${formatImgUrl(p.image)}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" />
       </td>
       <td>
         <strong>${p.name}</strong>
@@ -1283,7 +1295,7 @@ async function loadPriceManagementTable() {
     tbody.innerHTML = products.map(p => `
       <tr id="price-row-${p.id}">
         <td>
-          <img src="../${p.image || 'https://via.placeholder.com/60'}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" />
+          <img src="${formatImgUrl(p.image)}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" />
         </td>
         <td>
           <strong>${p.name}</strong>
