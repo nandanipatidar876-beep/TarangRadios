@@ -32,7 +32,14 @@ def load_upload_cache() -> dict:
     if os.path.exists(CACHE_FILE):
         try:
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                raw_cache = json.load(f)
+                if not isinstance(raw_cache, dict):
+                    return {}
+                # If Cloudinary is configured, filter out old non-cloud (local fallback) cache entries
+                if cloudinary_service.is_configured():
+                    cloud_only = {k: v for k, v in raw_cache.items() if v and (v.startswith("http://") or v.startswith("https://"))}
+                    return cloud_only
+                return raw_cache
         except Exception:
             return {}
     return {}
@@ -137,17 +144,44 @@ def sync_production(
         print(f"[ERROR] Catalog file not found at: {catalog_path}")
         return False
 
-    print("=================================================================")
-    print("      TARANG RADIOS - PRODUCTION CATALOG & CLOUDINARY SYNC       ")
-    print("=================================================================")
-    print(f"Catalog JSON     : {catalog_path}")
-    print(f"Images Directory : {images_dir}")
-    print(f"Database Engine  : {get_engine_type().upper()}")
-    print(f"Target DB        : {os.environ.get('DATABASE_URL', 'SQLite tarang.db').split('@')[-1] if '@' in os.environ.get('DATABASE_URL', '') else 'Local DB'}")
-    print(f"Cloudinary Mode  : {'Configured' if cloudinary_service.is_configured() else 'Local Fallback (Set CLOUDINARY_* in .env)'}")
-    print(f"Upload Workers   : {workers} threads")
-    print(f"Dry Run Mode     : {'YES (Preview only, no writes)' if dry_run else 'NO (Live Execution)'}")
-    print("-----------------------------------------------------------------")
+    # Check Database Connection if PostgreSQL is targeted
+    target_db_url = os.environ.get("DATABASE_URL", "").strip()
+    if target_db_url and (target_db_url.startswith("postgres://") or target_db_url.startswith("postgresql://")):
+        # Check if user provided Render's Internal hostname
+        host_match = re.search(r'@([^:/]+)', target_db_url)
+        if host_match:
+            host = host_match.group(1)
+            if host.startswith("dpg-") and "." not in host:
+                print("\n[RENDER POSTGRESQL HOSTNAME ERROR]")
+                print(f"  The database host '{host}' is Render's INTERNAL hostname.")
+                print("  Internal hostnames only work inside Render's private cloud network.")
+                print("  To connect from your local laptop, please copy the EXTERNAL Database URL:")
+                print("  -> In Render Dashboard -> PostgreSQL (tarang-postgres) -> Connections -> 'External Database URL'")
+                print("  -> Example: postgresql://tarang_user:...@dpg-dabsevon74is738aq39g-a.singapore-postgres.render.com/tarang_db_bkk7\n")
+                if not dry_run:
+                    return False
+
+        # Attempt test connection
+        try:
+            from db import create_connection
+            test_conn, test_engine = create_connection()
+            if test_engine != "postgres" and not dry_run:
+                print(f"\n[ERROR] Could not establish connection to PostgreSQL at {target_db_url.split('@')[-1]}.")
+                print("Please verify the host, username, password, and port in your External Database URL.\n")
+                return False
+            test_conn.close()
+        except Exception as conn_err:
+            print(f"\n[ERROR] Database connection test failed: {conn_err}")
+            if not dry_run:
+                return False
+
+    # Check Cloudinary Status
+    if not cloudinary_service.is_configured() and not skip_images and not dry_run:
+        print("\n[CLOUDINARY CONFIGURATION NOTICE]")
+        print("  CLOUDINARY_CLOUD_NAME is missing or empty in .env!")
+        print("  Please add your Cloud Name from https://cloudinary.com/console (top left) into .env:")
+        print("  CLOUDINARY_CLOUD_NAME=your_cloud_name\n")
+        return False
 
     # 1. Load JSON Catalog
     with open(catalog_path, "r", encoding="utf-8") as f:
