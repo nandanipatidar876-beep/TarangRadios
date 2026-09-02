@@ -167,14 +167,39 @@ def print_migration_status():
     print()
 
 if __name__ == "__main__":
-    action = sys.argv[1] if len(sys.argv) > 1 else "up"
-    if action == "status":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Tarang Radios - Database Migration & Production Catalog Sync Runner")
+    parser.add_argument("command", nargs="?", default="up", choices=["up", "status", "init-admin", "sync-prod"], help="Command to run (default: up)")
+    parser.add_argument("--sync-prod", action="store_true", help="Sync local scraped catalog & images directly to production")
+    parser.add_argument("--catalog", default=r"D:\scrapping\products_catalog.json", help="Path to products_catalog.json")
+    parser.add_argument("--images-dir", default=r"D:\scrapping\product_images", help="Path to product images root directory")
+    parser.add_argument("--db-url", help="Override database connection URL (PostgreSQL / SQLite)")
+    parser.add_argument("--workers", type=int, default=15, help="Concurrent upload threads (default: 15)")
+    parser.add_argument("--dry-run", action="store_true", help="Preview sync and verify files without writing")
+    parser.add_argument("--skip-images", action="store_true", help="Seed database without uploading new images")
+
+    args = parser.parse_args()
+
+    if args.sync_prod or args.command == "sync-prod":
+        from sync_catalog import sync_production
+        sync_production(
+            catalog_path=args.catalog,
+            images_dir=args.images_dir,
+            db_url=args.db_url,
+            workers=args.workers,
+            dry_run=args.dry_run,
+            skip_images=args.skip_images
+        )
+    elif args.command == "status":
         print_migration_status()
-    elif action in ("up", "run"):
+    elif args.command in ("up", "run"):
+        if args.db_url:
+            os.environ["DATABASE_URL"] = args.db_url
         run_all_migrations()
-    elif action == "init-admin":
+    elif args.command == "init-admin":
+        if args.db_url:
+            os.environ["DATABASE_URL"] = args.db_url
         with get_db() as db:
             ensure_default_admin(db)
-    else:
-        print(f"Unknown command: {action}")
-        print("Usage: python migrate.py [up|status|init-admin]")
+
