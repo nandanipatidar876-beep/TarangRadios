@@ -270,6 +270,19 @@
       <p class="section-subtitle">Explore development boards, microcontrollers, multi-band transistors, and audio components</p>
     </div>
 
+    <!-- Category Search & Filter Toolbar -->
+    <div class="category-toolbar-wrapper">
+      <div class="category-search-box">
+        <svg class="cat-search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="categorySearchInput" placeholder="Filter across categories (e.g. Cables, Arduino, Audio, Transistors)..." />
+        <button id="clearCategorySearchBtn" class="clear-cat-search-btn" title="Clear filter" style="display: none;">&times;</button>
+      </div>
+      <div class="category-stats-chip" id="categoryStatsChip">
+        <span class="cat-chip-dot"></span>
+        <span id="categoryCountDisplay">29 Categories</span>
+      </div>
+    </div>
+
     <!-- Compact Rectangular Category Grid Container -->
     <div class="categories-container">
       <div class="categories-grid" id="categoriesGrid"></div>

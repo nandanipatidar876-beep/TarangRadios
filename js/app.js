@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     wishlist: JSON.parse(localStorage.getItem('tarang_wishlist') || '[]'),
     activeSubcategoryFilter: null,
     searchQuery: '',
+    categoryFilterQuery: '',
     selectedCategoryForModal: null,
     selectedBrandForModal: null
   };
@@ -39,6 +40,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const searchResultsDropdown = document.getElementById('searchResultsDropdown');
   
   const categoriesGrid = document.getElementById('categoriesGrid');
+  const categorySearchInput = document.getElementById('categorySearchInput');
+  const clearCategorySearchBtn = document.getElementById('clearCategorySearchBtn');
+  const categoryCountDisplay = document.getElementById('categoryCountDisplay');
   const brandsGrid = document.getElementById('brandsGrid');
 
   const subcategoryModal = document.getElementById('subcategoryModal');
@@ -244,20 +248,92 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- RENDER HIGH-END LUXURY CATEGORIES GRID ---
   function renderCategoriesGrid() {
-    if (!categoriesGrid) return;
+    if (!categoriesGrid || !window.TARANG_DATA.categories) return;
 
-    categoriesGrid.innerHTML = window.TARANG_DATA.categories.map(cat => {
+    let allCats = window.TARANG_DATA.categories;
+    const q = (state.categoryFilterQuery || '').toLowerCase().trim();
+
+    let filteredCats = allCats;
+    if (q) {
+      filteredCats = allCats.filter(cat => {
+        const titleMatch = (cat.title || '').toLowerCase().includes(q);
+        const subMatch = (cat.subcategories || []).some(s => (s || '').toLowerCase().includes(q));
+        const tagMatch = (cat.tagline || '').toLowerCase().includes(q);
+        return titleMatch || subMatch || tagMatch;
+      });
+    }
+
+    if (categoryCountDisplay) {
+      categoryCountDisplay.textContent = `${filteredCats.length} ${filteredCats.length === 1 ? 'Category' : 'Categories'}`;
+    }
+
+    if (filteredCats.length === 0) {
+      categoriesGrid.innerHTML = `
+        <div class="category-empty-state">
+          <div class="empty-icon">🔍</div>
+          <h4>No matching categories found</h4>
+          <p>Try searching for a different keyword or view all categories.</p>
+          <button class="btn-primary" onclick="window.clearCategoryFilter()" style="margin-top: 1rem; padding: 0.5rem 1.25rem;">
+            Show All Categories
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    categoriesGrid.innerHTML = filteredCats.map(cat => {
+      const subCount = cat.subcategories ? cat.subcategories.length : 0;
+      const prodsCount = window.TARANG_DATA.products ? window.TARANG_DATA.products.filter(p => p.categoryId === cat.id).length : 0;
+      const displayTagline = cat.tagline || `${prodsCount > 0 ? prodsCount + ' products' : 'Complete catalog'} in ${subCount} ${subCount === 1 ? 'section' : 'subsections'}`;
+
       return `
         <div class="category-card" onclick="window.selectCategoryCard('${cat.id}')">
+          <div class="cat-card-accent-bar"></div>
           <div class="cat-card-img-container">
             <img src="${formatImageUrl(cat.image)}" alt="${cat.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/600'" />
+            <div class="cat-card-sub-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+              <span>${subCount} ${subCount === 1 ? 'Subcategory' : 'Subcategories'}</span>
+            </div>
           </div>
-          <div class="cat-card-title-wrapper">
-            <h3 class="category-card-heading">${cat.title}</h3>
+          <div class="cat-card-body">
+            <h3 class="category-card-heading" title="${cat.title}">${cat.title}</h3>
+            <p class="category-card-meta">${displayTagline}</p>
+            <div class="category-card-action">
+              <span class="cat-action-label">Explore Catalog</span>
+              <div class="cat-action-circle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+            </div>
           </div>
         </div>
       `;
     }).join('');
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  window.clearCategoryFilter = () => {
+    state.categoryFilterQuery = '';
+    if (categorySearchInput) categorySearchInput.value = '';
+    if (clearCategorySearchBtn) clearCategorySearchBtn.style.display = 'none';
+    renderCategoriesGrid();
+  };
+
+  if (categorySearchInput) {
+    categorySearchInput.addEventListener('input', (e) => {
+      state.categoryFilterQuery = e.target.value;
+      if (clearCategorySearchBtn) {
+        clearCategorySearchBtn.style.display = e.target.value.trim() ? 'block' : 'none';
+      }
+      renderCategoriesGrid();
+    });
+  }
+
+  if (clearCategorySearchBtn) {
+    clearCategorySearchBtn.addEventListener('click', () => {
+      window.clearCategoryFilter();
+    });
   }
 
   window.selectCategoryCard = (catId) => {
@@ -301,8 +377,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.selectedBrandForModal = null;
     state.activeSubcategoryFilter = targetSubcategory;
 
+    const prods = window.TARANG_DATA.products ? window.TARANG_DATA.products.filter(p => p.categoryId === cat.id) : [];
+    const subCount = cat.subcategories ? cat.subcategories.length : 0;
+
     if (modalCategoryTitle) modalCategoryTitle.textContent = cat.title;
-    if (modalCategorySubtitle) modalCategorySubtitle.textContent = cat.tagline || 'Explore our full range of certified components';
+    if (modalCategorySubtitle) {
+      modalCategorySubtitle.innerHTML = `
+        <span class="modal-sub-tagline">${cat.tagline || 'Explore verified catalog components and parts'}</span>
+        <div class="modal-meta-chips">
+          <span class="meta-chip">📁 ${subCount} ${subCount === 1 ? 'Subcategory' : 'Subcategories'}</span>
+          <span class="meta-chip">⚡ ${prods.length} Certified Products</span>
+        </div>
+      `;
+    }
 
     renderSubcategoryPills();
     renderModalProducts();
@@ -314,21 +401,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!modalSubcategoryPills) return;
 
     let subcategories = [];
+    let products = [];
+
     if (state.selectedCategoryForModal) {
       subcategories = state.selectedCategoryForModal.subcategories || [];
+      products = window.TARANG_DATA.products.filter(p => p.categoryId === state.selectedCategoryForModal.id);
     } else if (state.selectedBrandForModal) {
-      // Collect all subcategories under this brand
       const brandCats = window.TARANG_DATA.brandCategories.filter(c => c.brandId === state.selectedBrandForModal.id);
       brandCats.forEach(c => {
         if (c.subcategories) subcategories.push(...c.subcategories);
       });
       subcategories = Array.from(new Set(subcategories));
+      products = window.TARANG_DATA.products.filter(p => p.brandId === state.selectedBrandForModal.id || (p.brand && p.brand.toLowerCase() === state.selectedBrandForModal.name.toLowerCase()));
     }
 
-    let html = `<button class="sub-pill ${!state.activeSubcategoryFilter ? 'active' : ''}" onclick="window.setSubcategoryFilter(null)">All Subcategories</button>`;
+    const totalCount = products.length;
+    let html = `
+      <button class="sub-pill ${!state.activeSubcategoryFilter ? 'active' : ''}" onclick="window.setSubcategoryFilter(null)">
+        <span>All Subcategories</span>
+        <span class="sub-pill-count">${totalCount}</span>
+      </button>
+    `;
 
     subcategories.forEach(sub => {
-      html += `<button class="sub-pill ${state.activeSubcategoryFilter === sub ? 'active' : ''}" onclick="window.setSubcategoryFilter('${sub}')">${sub}</button>`;
+      const count = products.filter(p => p.subcategory === sub).length;
+      html += `
+        <button class="sub-pill ${state.activeSubcategoryFilter === sub ? 'active' : ''}" onclick="window.setSubcategoryFilter('${sub}')">
+          <span>${sub}</span>
+          <span class="sub-pill-count">${count}</span>
+        </button>
+      `;
     });
 
     modalSubcategoryPills.innerHTML = html;
