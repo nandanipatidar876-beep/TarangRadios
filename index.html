@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TARANG RADIOS | Premier Vintage & Modern Radio Engineering</title>
+  <meta name="description" content="Discover India's finest vintage vacuum tube radios, portable transistors, Saregama Carvaan, retro Bluetooth speakers, and genuine audio components at Tarang Radios." />
+  
+  <!-- Google Fonts: Cinzel & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ==========================================================================
+       1. STICKY NAVIGATION BAR (AT THE VERY TOP OF THE WEBSITE)
+       ========================================================================== -->
+  <nav class="navbar" id="navbar">
+    <a href="#hero" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>
+      <span class="nav-brand-text">TARANG <span>RADIOS</span></span>
+    </a>
+
+    <!-- Navbar Live Search Bar -->
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search radios, brands (Philips, Sony, Murphy)..." autocomplete="off" />
+      </div>
+      <div id="searchResultsDropdown" class="search-results-dropdown"></div>
+    </div>
+
+    <!-- Nav Actions -->
+    <div class="nav-actions">
+      <!-- Wishlist Trigger Button with Heart Logo -->
+      <button class="icon-btn" id="wishlistToggleBtn" title="View Wishlist" aria-label="Wishlist">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="var(--warm-orange)" stroke="var(--warm-orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        <span class="badge-count" id="wishlistBadge">0</span>
+      </button>
+
+      <!-- Profile Menu Trigger Button with User Logo -->
+      <div class="profile-dropdown-wrapper">
+        <button class="icon-btn" id="profileMenuBtn" title="Open Profile Menu" aria-label="Profile Menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+
+        <!-- Profile Menu Dropdown Panel -->
+        <div class="profile-menu-panel" id="profileMenuPanel">
+          <div class="profile-header">
+            <div class="profile-avatar">TR</div>
+            <div>
+              <h4 style="color: var(--warm-orange); font-size: 1rem; font-weight: 800;">Guest Collector</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Tarang Club Member</p>
+            </div>
+          </div>
+
+          <!-- Price Hide/Show Switch Control -->
+          <div class="price-toggle-box">
+            <div class="toggle-info">
+              <h4>Hide Product Prices</h4>
+              <p id="priceToggleStatusText">Mask prices across site</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="priceToggleInput">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="profile-links">
+            <a href="#wishlist" class="profile-link-item" onclick="document.getElementById('wishlistToggleBtn').click();">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> Saved Wishlist Items
+            </a>
+            <a href="#contactSection" class="profile-link-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Request Custom Restoration
+            </a>
+            <a href="#brandsSection" class="profile-link-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Brand Partners
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ==========================================================================
+       2. FRONT COVER PAGE (HERO SECTION - LUXURY ANIMATED TRANSMISSION LOGO)
+       ========================================================================== -->
+  <section class="hero-cover" id="hero">
+    <!-- Animated Golden Ambient Canvas -->
+    <canvas id="heroVisualizer" class="visualizer-backdrop"></canvas>
+
+    <!-- Luxury Ambient Glow Background Elements -->
+    <div class="hero-ambient-glow"></div>
+
+    <div class="hero-logo-container">
+      <!-- 1. Very top of Hero Section: SINCE 1972 -->
+      <div class="hero-since-badge">SINCE 1972</div>
+
+      <!-- Luxury Animated Transmission Tower SVG Logo -->
+      <div class="tower-svg-wrapper" id="towerLogoWrapper">
+        <svg class="transmission-tower-svg" viewBox="0 0 480 520" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Warm Orange (#D14B14) Tower & Energy Gradients -->
+            <linearGradient id="goldTowerGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#8B1D00" />
+              <stop offset="35%" stop-color="#D14B14" />
+              <stop offset="70%" stop-color="#F25A22" />
+              <stop offset="100%" stop-color="#FFE4C4" />
+            </linearGradient>
+
+            <linearGradient id="goldBeamGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="rgba(209, 75, 20, 0.2)" />
+              <stop offset="50%" stop-color="#D14B14" />
+              <stop offset="100%" stop-color="#FFE4C4" />
+            </linearGradient>
+
+            <linearGradient id="lightningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFF5E6" />
+              <stop offset="50%" stop-color="#D14B14" />
+              <stop offset="100%" stop-color="#9E2B00" />
+            </linearGradient>
+
+            <!-- Luminous Warm Glow Filter -->
+            <filter id="goldGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            <filter id="lightningGlowFilter" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <!-- Radio Wave Transmission Rings -->
+          <g class="radio-waves-group">
+            <circle class="radio-wave wave-1" cx="240" cy="30" r="25" />
+            <circle class="radio-wave wave-2" cx="240" cy="30" r="50" />
+            <circle class="radio-wave wave-3" cx="240" cy="30" r="85" />
+            <circle class="radio-wave wave-4" cx="130" cy="95" r="30" />
+            <circle class="radio-wave wave-5" cx="350" cy="175" r="30" />
+            <circle class="radio-wave wave-6" cx="130" cy="255" r="30" />
+          </g>
+
+          <!-- Tower Light Beam Powerup Trail -->
+          <line class="powerup-beam" x1="240" y1="480" x2="240" y2="30" stroke="url(#goldBeamGrad)" stroke-width="4" stroke-linecap="round" />
+
+          <!-- Main Transmission Tower Structure -->
+          <g class="tower-structure-group" filter="url(#goldGlow)">
+            <path class="tower-path main-legs" d="
+              M 240,30 L 232,90 L 222,230 L 170,480 
+              M 240,30 L 248,90 L 258,230 L 310,480
+              M 170,480 L 240,420 L 310,480
+              M 195,480 L 240,445 L 285,480
+            " fill="none" stroke="url(#goldTowerGrad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+
+            <path class="tower-path top-arm" d="
+              M 238,95 L 130,95 L 236,130 Z
+              M 130,95 L 184,112 M 184,95 L 210,121
+            " fill="none" stroke="url(#goldTowerGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+            <path class="tower-path middle-arm" d="
+              M 242,175 L 350,175 L 244,210 Z
+              M 350,175 L 296,192 M 296,175 L 270,201
+            " fill="none" stroke="url(#goldTowerGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+            <path class="tower-path lower-arm" d="
+              M 238,255 L 130,255 L 236,290 Z
+              M 130,255 L 184,272 M 184,255 L 210,281
+            " fill="none" stroke="url(#goldTowerGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+            <path class="tower-path lattice-bracing" d="
+              M 232,90 L 248,110 M 248,90 L 232,110 M 232,110 L 248,110
+              M 231,110 L 249,135 M 249,110 L 231,135 M 231,135 L 249,135
+              M 230,135 L 250,160 M 250,135 L 230,160 M 230,160 L 250,160
+              M 228,160 L 252,185 M 252,160 L 228,185 M 228,185 L 252,185
+              M 226,185 L 254,210 M 254,185 L 226,210 M 226,210 L 254,210
+              M 224,210 L 256,240 M 256,210 L 224,240 M 224,240 L 256,240
+              M 220,240 L 260,275 M 260,240 L 220,275 M 220,275 L 260,275
+              M 214,275 L 266,310 M 266,275 L 214,310 M 214,310 L 266,310
+              M 207,310 L 273,350 M 273,310 L 207,350 M 207,350 L 273,350
+              M 198,350 L 282,395 M 282,350 L 198,395 M 198,395 L 282,395
+              M 188,395 L 292,440 M 292,395 L 188,440 M 188,440 L 292,440
+            " fill="none" stroke="url(#goldTowerGrad)" stroke-width="2" stroke-linecap="round" />
+          </g>
+
+          <!-- 6 Surrounding Electrical Lightning Bolts -->
+          <g class="lightning-bolts-group" filter="url(#lightningGlowFilter)">
+            <polygon class="lightning-bolt bolt-1" points="115,45 138,78 126,80 152,112 130,96 140,92" fill="url(#lightningGrad)" />
+            <polygon class="lightning-bolt bolt-2" points="55,105 88,132 74,135 112,165 86,149 98,143" fill="url(#lightningGrad)" />
+            <polygon class="lightning-bolt bolt-3" points="365,100 342,132 354,135 322,170 348,154 336,148" fill="url(#lightningGrad)" />
+            <polygon class="lightning-bolt bolt-4" points="410,165 378,198 392,200 358,238 382,220 370,215" fill="url(#lightningGrad)" />
+            <polygon class="lightning-bolt bolt-5" points="68,215 102,242 88,245 128,278 100,259 112,253" fill="url(#lightningGrad)" />
+            <polygon class="lightning-bolt bolt-6" points="108,290 138,318 125,320 158,348 135,332 145,327" fill="url(#lightningGrad)" />
+          </g>
+        </svg>
+      </div>
+
+      <!-- Animated Brand Typography -->
+      <div class="hero-brand-block">
+        <h1 class="tarang-title" id="tarangTitle">TARANG</h1>
+        <div class="radios-subtitle" id="radiosSubtitle">RADIOS</div>
+        <!-- 3. Industrial and Electronics Tagline -->
+        <p class="hero-tagline">INDUSTRIAL AND ELECTRONICS SPARE PART COMPONENTS</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       3. ABOUT US SECTION (Positioned Directly Above Product Categories)
+       ========================================================================== -->
+  <section class="section-about" id="aboutSection">
+    <div class="about-card-grid">
+      <div class="about-text-box">
+        <div class="hero-badge" style="margin-bottom: 1rem;">
+          <i data-lucide="award"></i> OUR HERITAGE & PASSION
+        </div>
+        <h2>About <span>Tarang Radios</span></h2>
+        <p>
+          For over six decades, <strong>Tarang Radios</strong> has stood as India's benchmark destination for radio enthusiasts, antique collectors, and audiophiles. Born out of a deep reverence for analog warmth and precision acoustic craftsmanship, we bridge the timeless charm of vintage vacuum tube engineering with modern audio innovations.
+        </p>
+        <p>
+          Whether you are seeking a restored 1958 Teakwood Valve Console, a high-gain multi-band transistor, a pre-loaded Saregama Carvaan, or rare NOS replacement vacuum tubes, Tarang Radios delivers original acoustic perfection and Pan-India restoration support.
+        </p>
+
+        <div class="about-stats">
+          <div class="stat-item">
+            <div class="stat-num">65+</div>
+            <div class="stat-label">Years Legacy</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">12,000+</div>
+            <div class="stat-label">Radios Restored</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">100%</div>
+            <div class="stat-label">Genuine Quality</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-visual-frame">
+        <img src="https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=800&q=80" alt="Tarang Radios Vintage Restoration" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       4. PRODUCT CATEGORY & SUBCATEGORY SECTION
+       ========================================================================== -->
+  <section class="section-categories" id="categorySection">
+    <div class="section-header">
+      <div class="hero-badge" style="margin: 0 auto 1rem auto;">
+        <i data-lucide="layers"></i> CATEGORIES & SUBCATEGORIES
+      </div>
+      <h2 class="section-title">Product Categories</h2>
+      <p class="section-subtitle">Explore development boards, microcontrollers, multi-band transistors, and audio components</p>
+    </div>
+
+    <!-- Compact Rectangular Category Grid Container -->
+    <div class="categories-container">
+      <div class="categories-grid" id="categoriesGrid"></div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       5. BRANDS WE DEAL WITH SECTION
+       ========================================================================== -->
+  <section class="section-brands" id="brandsSection">
+    <div class="section-header" style="text-align: center;">
+      <div class="hero-badge" style="margin: 0 auto 1rem auto;">
+        <i data-lucide="shield-check"></i> LEGACY & MODERN BRANDS
+      </div>
+      <h2 class="section-title">The Brands We Deal With</h2>
+      <p class="section-subtitle">World-class radio engineering and trusted iconic audio brands</p>
+    </div>
+
+    <div class="brands-grid" id="brandsGrid"></div>
+  </section>
+
+  <!-- ==========================================================================
+       7. CONTACT DETAILS & LOCATION SECTION
+       ========================================================================== -->
+  <section class="section-contact" id="contactSection">
+    <div class="contact-grid">
+      <!-- Contact Info Card -->
+      <div class="contact-info-card">
+        <h3>Contact Tarang Radios</h3>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Have questions about vintage radio restoration, pricing, or custom orders? Reach out to our specialist team directly.</p>
+
+        <div class="contact-item">
+          <div class="contact-icon"><i data-lucide="map-pin"></i></div>
+          <div class="contact-text">
+            <h5>Flagship Store & Workshop</h5>
+            <p>1884, Radio Market, Chandni Chowk, New Delhi, India 110006</p>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon"><i data-lucide="phone"></i></div>
+          <div class="contact-text">
+            <h5>Phone & Customer Support</h5>
+            <p>+91 98765 43210 / +91 11 2345 6789</p>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon"><i data-lucide="mail"></i></div>
+          <div class="contact-text">
+            <h5>Email Inquiries</h5>
+            <p>info@tarangradios.com / sales@tarangradios.com</p>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon"><i data-lucide="clock"></i></div>
+          <div class="contact-text">
+            <h5>Store Operating Hours</h5>
+            <p>Monday - Saturday: 10:30 AM - 7:30 PM (Sunday Closed)</p>
+          </div>
+        </div>
+
+        <!-- WhatsApp Quick Chat -->
+        <a href="https://wa.me/919876543210?text=Hello%20Tarang%20Radios,%20I%20want%20to%20inquire%20about%20your%20radios." target="_blank" rel="noopener noreferrer" class="whatsapp-direct-btn">
+          <i data-lucide="message-circle"></i> Chat Directly on WhatsApp
+        </a>
+      </div>
+
+      <!-- Quick Inquiry Form -->
+      <div class="contact-form-box">
+        <h4 style="font-family: 'Cinzel', serif; font-size: 1.6rem; color: var(--warm-orange); margin-bottom: 1.5rem;">Send Us an Inquiry</h4>
+        
+        <form id="contactForm">
+          <div class="form-group">
+            <label for="userName">Your Full Name</label>
+            <input type="text" id="userName" class="form-control" placeholder="Enter your name" required />
+          </div>
+
+          <div class="form-group">
+            <label for="userPhone">Phone / WhatsApp Number</label>
+            <input type="tel" id="userPhone" class="form-control" placeholder="+91 XXXXX XXXXX" required />
+          </div>
+
+          <div class="form-group">
+            <label for="inquiryMsg">Inquiry Message</label>
+            <textarea id="inquiryMsg" class="form-control" rows="4" placeholder="Tell us which radio or restoration service you are interested in..." required></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+            <i data-lucide="send"></i> Submit Inquiry
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       8. FOOTER
+       ========================================================================== -->
+  <footer>
+    <p>© 2026 <span class="nav-brand-text" style="font-size: 1.1rem; font-weight: 900; vertical-align: middle;">TARANG <span>RADIOS</span></span>. All Rights Reserved. Crafted with passion for vintage radio heritage.</p>
+  </footer>
+
+  <!-- ==========================================================================
+       SIDE DRAWER: WISHLIST
+       ========================================================================== -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  
+  <div class="side-drawer" id="wishlistDrawer">
+    <div class="drawer-header">
+      <h3><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="var(--warm-orange)" stroke="var(--warm-orange)" stroke-width="2" style="vertical-align: middle;"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> Saved Wishlist</h3>
+      <button id="closeWishlistBtn" style="color: var(--warm-orange); font-size: 1.6rem;">&times;</button>
+    </div>
+    <div class="drawer-body" id="wishlistItemsContainer">
+      <!-- Dynamically rendered -->
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: SUBCATEGORY & PRODUCTS EXPANDER
+       ========================================================================== -->
+  <div class="modal-wrapper" id="subcategoryModal">
+    <div class="modal-content-box">
+      <button class="modal-close-btn" id="modalCloseBtn" style="font-size: 1.8rem;">&times;</button>
+      
+      <div style="margin-bottom: 1rem;">
+        <span style="color: var(--warm-orange); font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Selected Category</span>
+        <h3 id="modalCategoryTitle" style="font-family: 'Cinzel', serif; font-size: 2rem; color: var(--warm-orange);">Category Title</h3>
+        <p id="modalCategorySubtitle" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 500;">Category tagline</p>
+      </div>
+
+      <!-- Subcategory Filter Pills -->
+      <div class="subcategory-pills-list" id="modalSubcategoryPills"></div>
+
+      <!-- Filtered Products inside modal -->
+      <div id="modalProductsGrid"></div>
+    </div>
+  </div>
+
+  <!-- Image Zoom Lightbox Modal -->
+  <div id="imageZoomModal" class="image-zoom-modal">
+    <div class="image-zoom-content">
+      <button class="image-zoom-close" id="closeZoomModalBtn">&times;</button>
+      <img id="zoomedImageDisplay" src="" alt="Zoomed View" />
+      <div id="zoomedImageCaption" class="image-zoom-caption"></div>
+    </div>
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/productsData.js"></script>
+  <script src="js/dome3d.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Hero Background Golden Ambient Particle Script -->
+  <script>
+    (function() {
+      const canvas = document.getElementById('heroVisualizer');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let width, height;
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      // Floating Radium Orange ambient particles
+      const particles = Array.from({ length: 54 }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: Math.random() * 2.8 + 1.0,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: -Math.random() * 0.45 - 0.15,
+        alpha: Math.random() * 0.75 + 0.3,
+        color: Math.random() > 0.4 ? '#FF3300' : '#FF7700'
+      }));
+
+      function animate() {
+        requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, width, height);
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.y < 0) {
+            p.y = height + 10;
+            p.x = Math.random() * width;
+          }
+          if (p.x < 0) p.x = width;
+          if (p.x > width) p.x = 0;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.alpha;
+          ctx.shadowBlur = 14;
+          ctx.shadowColor = '#FF3300';
+          ctx.fill();
+        });
+      }
+      animate();
+    })();
+  </script>
+</body>
+</html>

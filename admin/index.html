@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tarang Radios — Admin Control Panel</title>
+  
+  <!-- Google Fonts: Cinzel & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Admin Stylesheet -->
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- ==========================================================================
+       1. AUTHENTICATION LOGIN OVERLAY
+       ========================================================================== -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-logo-icon">
+          <i data-lucide="radio" style="width: 32px; height: 32px; color: var(--warm-orange);"></i>
+        </div>
+        <h2>TARANG <span>ADMIN</span></h2>
+        <p>Product & Catalog Management Portal</p>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div id="loginError" class="alert-error" style="display: none;"></div>
+
+        <div class="form-group">
+          <label for="loginUsername">Username</label>
+          <div class="input-with-icon">
+            <i data-lucide="user"></i>
+            <input type="text" id="loginUsername" placeholder="Enter admin username" required autocomplete="username" value="admin" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <div class="input-with-icon">
+            <i data-lucide="lock"></i>
+            <input type="password" id="loginPassword" placeholder="Enter admin password" required autocomplete="current-password" value="admin123" />
+          </div>
+        </div>
+
+        <button type="submit" id="loginSubmitBtn" class="btn-primary btn-block">
+          <i data-lucide="log-in"></i> Sign In to Dashboard
+        </button>
+
+        <div class="login-footer-hint">
+          <small>Default credentials: <strong>admin</strong> / <strong>admin123</strong></small>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       2. MAIN ADMIN APP SHELL
+       ========================================================================== -->
+  <div id="adminApp" class="admin-app" style="display: none;">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="sidebar-header">
+        <a href="../index.html" target="_blank" class="brand-link" title="Open Public Website">
+          <i data-lucide="radio" class="brand-icon"></i>
+          <div>
+            <div class="brand-name">TARANG <span>RADIOS</span></div>
+            <div class="brand-subtitle">Control Center</div>
+          </div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- GENERAL OVERVIEW -->
+        <button class="nav-item active" data-tab="dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <!-- SECTION 1: NORMAL CATALOG (NO BRANDS) -->
+        <div class="nav-section-divider">NORMAL CATALOG</div>
+
+        <button class="nav-item" data-tab="categories">
+          <i data-lucide="layers"></i>
+          <span>Categories</span>
+          <span class="nav-badge" id="badgeNormalCategoriesCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="subcategories">
+          <i data-lucide="git-branch"></i>
+          <span>Subcategories</span>
+          <span class="nav-badge" id="badgeNormalSubcategoriesCount">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="products">
+          <i data-lucide="package"></i>
+          <span>Products</span>
+          <span class="nav-badge" id="badgeNormalProductsCount">0</span>
+        </button>
+
+        <!-- SECTION 2: THE BRANDS WE DEAL WITH (DEDICATED) -->
+        <div class="nav-section-divider">BRAND PARTNERS</div>
+
+        <button class="nav-item brand-nav-item" data-tab="brands-management">
+          <i data-lucide="tag"></i>
+          <span>The Brands We Deal With</span>
+          <span class="nav-tag-highlight">7 Brands</span>
+        </button>
+
+        <!-- SECTION 3: PRICING & TOOLS -->
+        <div class="nav-section-divider">PRICING & TOOLS</div>
+
+        <button class="nav-item" data-tab="price-management">
+          <i data-lucide="indian-rupee"></i>
+          <span>Price Management</span>
+          <span class="nav-tag-instant">Instant</span>
+        </button>
+
+        <button class="nav-item" data-tab="bulk-import">
+          <i data-lucide="file-spreadsheet"></i>
+          <span>Bulk Import (CSV)</span>
+        </button>
+
+        <button class="nav-item" data-tab="bulk-images">
+          <i data-lucide="images"></i>
+          <span>Media Library</span>
+        </button>
+
+        <button class="nav-item" data-tab="settings">
+          <i data-lucide="settings"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="../index.html" target="_blank" class="btn-outline-public">
+          <i data-lucide="external-link"></i> View Live Website
+        </a>
+        <button id="logoutBtn" class="btn-logout">
+          <i data-lucide="log-out"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="admin-main">
+      
+      <!-- TOPBAR -->
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button id="sidebarToggleBtn" class="icon-toggle-btn" aria-label="Toggle Sidebar">
+            <i data-lucide="menu"></i>
+          </button>
+          <h1 id="pageTitle" class="topbar-title">Dashboard Overview</h1>
+        </div>
+
+        <div class="topbar-right">
+          <a href="../index.html" target="_blank" class="topbar-live-link">
+            <span class="pulse-indicator"></span> Public Website Live
+          </a>
+          <div class="user-profile-badge">
+            <div class="avatar-circle" id="userAvatar">A</div>
+            <div class="user-info">
+              <strong id="currentAdminName">Administrator</strong>
+              <small>Store Manager</small>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- VIEW CONTAINER -->
+      <div class="admin-content-container">
+
+        <!-- ==================================================================
+             VIEW 1: DASHBOARD
+             ================================================================== -->
+        <section id="view-dashboard" class="tab-view active">
+          <!-- Metric Stat Cards -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon-wrapper" style="background: rgba(209, 75, 20, 0.12); color: var(--warm-orange);">
+                <i data-lucide="package"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Total Products</span>
+                <h3 class="stat-value" id="statTotalProducts">0</h3>
+                <small class="stat-subtext" id="statInStockText">0 In Stock</small>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper" style="background: rgba(242, 201, 76, 0.18); color: #9B7000;">
+                <i data-lucide="tag"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Brands We Deal With</span>
+                <h3 class="stat-value" id="statTotalBrands">7</h3>
+                <small class="stat-subtext">Gillard, Alcop, DVM, Hoki, Noel, Kushiro, INGCO</small>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper" style="background: rgba(242, 201, 76, 0.15); color: #B38600;">
+                <i data-lucide="layers"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Normal Categories</span>
+                <h3 class="stat-value" id="statNormalCategories">0</h3>
+                <small class="stat-subtext">Main Store Catalog</small>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper" style="background: rgba(46, 204, 113, 0.12); color: #27ae60;">
+                <i data-lucide="git-branch"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Subcategories</span>
+                <h3 class="stat-value" id="statTotalSubcategories">0</h3>
+                <small class="stat-subtext">Catalog Classifications</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="dashboard-actions-banner">
+            <div class="banner-text">
+              <h3>Fast Catalog Controls</h3>
+              <p>Easily manage normal store categories, update the 7 Brands We Deal With, or quickly change prices.</p>
+            </div>
+            <div class="banner-buttons">
+              <button class="btn-primary" onclick="openNormalCategoryModal()">
+                <i data-lucide="plus-circle"></i> Add Normal Category
+              </button>
+              <button class="btn-primary" style="background: #2C160B;" onclick="switchTab('brands-management')">
+                <i data-lucide="tag"></i> The Brands We Deal With
+              </button>
+              <button class="btn-secondary" onclick="openNormalProductModal()">
+                <i data-lucide="plus-circle"></i> Add Product
+              </button>
+              <button class="btn-secondary" onclick="switchTab('price-management')">
+                <i data-lucide="indian-rupee"></i> Quick Price Editor
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent Products Preview Table -->
+          <div class="panel-card">
+            <div class="panel-header">
+              <h4>Recently Added Products</h4>
+              <button class="btn-link" onclick="switchTab('products')">View All Products →</button>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>Product Name</th>
+                    <th>SKU</th>
+                    <th>Section / Brand</th>
+                    <th>Subcategory</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboardRecentProductsList">
+                  <tr><td colspan="8" class="empty-state">Loading recent catalog items...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 2: NORMAL CATEGORIES (ZERO BRANDS)
+             ================================================================== -->
+        <section id="view-categories" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>Normal Categories</h2>
+              <p>Manage standard store categories. These have no brand association and form the primary store navigation.</p>
+            </div>
+            <button class="btn-primary" onclick="openNormalCategoryModal()">
+              <i data-lucide="plus"></i> Add Normal Category
+            </button>
+          </div>
+
+          <div class="panel-card">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="width: 60px;">Order</th>
+                    <th>Image</th>
+                    <th>Category Title</th>
+                    <th>Short Title</th>
+                    <th>Subcategories</th>
+                    <th>Products</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="normalCategoriesTableBody">
+                  <tr><td colspan="7" class="empty-state">Loading normal categories...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 3: NORMAL SUBCATEGORIES
+             ================================================================== -->
+        <section id="view-subcategories" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>Normal Subcategories</h2>
+              <p>Manage subcategories under your normal store categories.</p>
+            </div>
+            <button class="btn-primary" onclick="openNormalSubcategoryModal()">
+              <i data-lucide="plus"></i> Add Subcategory
+            </button>
+          </div>
+
+          <!-- Filter Toolbar -->
+          <div class="filter-toolbar">
+            <div class="form-group" style="margin-bottom: 0; min-width: 250px;">
+              <select id="normalSubcategoryParentFilter" class="form-control" onchange="loadNormalSubcategoriesTable()">
+                <option value="all">All Normal Categories</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Subcategory Name</th>
+                    <th>Parent Category</th>
+                    <th>Linked Products</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="normalSubcategoriesTableBody">
+                  <tr><td colspan="4" class="empty-state">Loading subcategories...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 4: NORMAL PRODUCTS
+             ================================================================== -->
+        <section id="view-products" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>Normal Product Catalog</h2>
+              <p>Manage standard products organized under normal categories and subcategories.</p>
+            </div>
+            <div class="view-header-actions">
+              <button class="btn-secondary" onclick="switchTab('bulk-import')">
+                <i data-lucide="upload"></i> Bulk Import
+              </button>
+              <button class="btn-primary" onclick="openNormalProductModal()">
+                <i data-lucide="plus"></i> Add Product
+              </button>
+            </div>
+          </div>
+
+          <!-- Filters & Search Toolbar -->
+          <div class="filter-toolbar">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="normalProductSearchInput" placeholder="Search by name, SKU..." oninput="debouncedSearchNormalProducts()" />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <select id="normalProductCategoryFilter" class="form-control" onchange="onNormalCategoryFilterChange()">
+                <option value="all">All Categories</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <select id="normalProductSubcategoryFilter" class="form-control" onchange="loadNormalProductsTable()">
+                <option value="all">All Subcategories</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <select id="normalProductSortFilter" class="form-control" onchange="loadNormalProductsTable()">
+                <option value="date_desc">Newest First</option>
+                <option value="name_asc">Name (A - Z)</option>
+                <option value="price_asc">Price (Low → High)</option>
+                <option value="price_desc">Price (High → Low)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>Product Name / SKU</th>
+                    <th>Category & Subcategory</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="normalProductsTableBody">
+                  <tr><td colspan="6" class="empty-state">Loading products...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 5: THE BRANDS WE DEAL WITH (COMPLETELY SEPARATE)
+             ================================================================== -->
+        <section id="view-brands-management" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>The Brands We Deal With</h2>
+              <p>Dedicated management for the 7 brands (<strong>Gillard, Alcop, DVM, Hoki, Noel, Kushiro, INGCO</strong>). Manage brand-specific Categories, Subcategories, and Products.</p>
+            </div>
+            <button class="btn-primary" onclick="openBrandModal()">
+              <i data-lucide="plus"></i> Add New Brand
+            </button>
+          </div>
+
+          <!-- Brand Navigation Selector Bar -->
+          <div class="brand-tabs-bar" id="brandTabsBar"></div>
+
+          <!-- Active Brand Management Container -->
+          <div id="brandDetailContainer" class="brand-detail-container" style="display: none;">
+            
+            <!-- Brand Overview Card -->
+            <div class="brand-overview-card">
+              <div class="brand-overview-left">
+                <div class="brand-title-badge">BRAND</div>
+                <h3 id="activeBrandNameDisplay" class="brand-big-title">Brand Name</h3>
+                <span id="activeBrandStatusBadge" class="status-pill enabled">Active</span>
+              </div>
+              <div class="brand-overview-actions">
+                <button class="btn-secondary" id="btnToggleActiveBrand" onclick="toggleActiveBrandStatus()">
+                  <i data-lucide="power"></i> Toggle Active
+                </button>
+                <button class="btn-secondary" onclick="openEditActiveBrandModal()">
+                  <i data-lucide="edit"></i> Rename Brand
+                </button>
+                <button class="btn-secondary" style="color:var(--danger);" onclick="deleteActiveBrand()">
+                  <i data-lucide="trash-2"></i> Delete Brand
+                </button>
+                <button class="btn-primary" onclick="openBrandCategoryModal()">
+                  <i data-lucide="plus"></i> Add Category to Brand
+                </button>
+              </div>
+            </div>
+
+            <!-- Brand Hierarchy Tree / Branch Explorer -->
+            <div class="panel-card" style="margin-top: 1.5rem;">
+              <div class="panel-header">
+                <div>
+                  <h4>Brand Catalog Structure (<span id="activeBrandHierarchyTitle"></span>)</h4>
+                  <p style="font-size:0.85rem; color:var(--text-muted);">
+                    Structure: <strong>Brand → Categories → Subcategories → Products</strong>. Changes update the public website automatically.
+                  </p>
+                </div>
+              </div>
+
+              <div id="brandHierarchyTree" class="tree-container">
+                <div class="empty-state">Loading brand catalog...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 6: INSTANT PRICE MANAGEMENT (CENTRALIZED)
+             ================================================================== -->
+        <section id="view-price-management" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>Instant Price Management</h2>
+              <p>Quickly update product prices for both normal and brand products. Changes reflect across the public site instantly.</p>
+            </div>
+          </div>
+
+          <div class="info-callout">
+            <i data-lucide="zap" style="color: var(--warm-orange);"></i>
+            <div>
+              <strong>Single Centralized Price Source:</strong>
+              When you modify a price and click <em>Save Price</em>, the website dynamically updates the price everywhere on the home page, search dropdown, category modal showroom, and customer wishlist.
+            </div>
+          </div>
+
+          <!-- Price Search Toolbar -->
+          <div class="filter-toolbar">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="priceSearchInput" placeholder="Filter products for price editing..." oninput="debouncedSearchPriceTable()" />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <select id="priceScopeFilter" class="form-control" onchange="loadPriceManagementTable()">
+                <option value="all">All Products (Normal + Brands)</option>
+                <option value="normal">Normal Catalog Products Only</option>
+                <option value="brands">Brand Products Only</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>Product Name & SKU</th>
+                    <th>Catalog Section</th>
+                    <th>Category</th>
+                    <th>Current Price</th>
+                    <th style="width: 180px;">New Price (₹)</th>
+                    <th style="text-align: right; width: 130px;">Quick Save</th>
+                  </tr>
+                </thead>
+                <tbody id="priceTableBody">
+                  <tr><td colspan="7" class="empty-state">Loading products for price management...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 7: BULK PRODUCT IMPORT (CSV & EXCEL)
+             ================================================================== -->
+        <section id="view-bulk-import" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>Bulk Product Import (CSV / Excel)</h2>
+              <p>Upload a product catalog with automatic image matching, validation, and preview before confirming.</p>
+            </div>
+            <a href="/api/export/csv-template" download class="btn-secondary">
+              <i data-lucide="download"></i> Download CSV Template
+            </a>
+          </div>
+
+          <div class="import-grid">
+            <div class="panel-card">
+              <div class="step-badge">STEP 1</div>
+              <h4>Upload Product CSV File</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Select your spreadsheet (.csv). Supports fields: <em>Product Name, Price, Brand (optional), Category, Subcategory, SKU, Availability, Image Filename, Description</em>.
+              </p>
+
+              <div class="file-dropzone" id="csvDropzone" onclick="document.getElementById('csvFileInput').click()">
+                <i data-lucide="file-spreadsheet" class="dropzone-icon"></i>
+                <p><strong>Click to choose CSV</strong> or drag and drop file here</p>
+                <small id="csvFileNameDisplay" style="color: var(--warm-orange); font-weight: 700;"></small>
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCsvFileSelected(event)" />
+              </div>
+
+              <div class="form-check" style="margin-top: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.88rem;">
+                  <input type="checkbox" id="autoNameFromImageFilename" />
+                  <span>Auto-generate Product Name from Image Filename if Name is blank</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <div class="step-badge">STEP 2</div>
+              <h4>Upload Product Images</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Upload multiple product images at once. The system will automatically match each image to the row containing its filename.
+              </p>
+
+              <div class="file-dropzone" id="imagesDropzone" onclick="document.getElementById('bulkImagesInput').click()">
+                <i data-lucide="images" class="dropzone-icon"></i>
+                <p><strong>Click to choose multiple images</strong> (JPG, PNG, WebP)</p>
+                <small id="imagesCountDisplay" style="color: var(--warm-orange); font-weight: 700;"></small>
+                <input type="file" id="bulkImagesInput" multiple accept="image/*" style="display: none;" onchange="handleBulkImagesSelected(event)" />
+              </div>
+
+              <div style="margin-top: 1rem;">
+                <button class="btn-primary btn-block" id="btnUploadBulkImages" onclick="uploadBulkImagesToServer()" disabled>
+                  <i data-lucide="upload"></i> Upload & Process Images
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3: PREVIEW TABLE & VALIDATION -->
+          <div class="panel-card" id="importPreviewCard" style="display: none; margin-top: 1.5rem;">
+            <div class="panel-header">
+              <div>
+                <div class="step-badge">STEP 3</div>
+                <h4>Import Preview & Validation Table</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">
+                  Review the parsed products and fix any validation errors before final import.
+                </p>
+              </div>
+              <div class="preview-actions">
+                <button class="btn-secondary" onclick="clearImportPreview()">Cancel</button>
+                <button class="btn-primary" id="btnConfirmImport" onclick="confirmBulkImport()">
+                  <i data-lucide="check-circle"></i> Confirm Import (<span id="importValidCount">0</span> Products)
+                </button>
+              </div>
+            </div>
+
+            <div class="validation-summary-bar" id="validationSummaryBar"></div>
+
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Image Preview</th>
+                    <th>Product Name</th>
+                    <th>Brand (Optional)</th>
+                    <th>Price (₹)</th>
+                    <th>Category</th>
+                    <th>Subcategory</th>
+                    <th>SKU</th>
+                    <th>Stock</th>
+                  </tr>
+                </thead>
+                <tbody id="importPreviewTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 8: MEDIA LIBRARY
+             ================================================================== -->
+        <section id="view-bulk-images" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>Product Images Media Library</h2>
+              <p>Upload and browse all product images saved on your server.</p>
+            </div>
+            <button class="btn-primary" onclick="document.getElementById('mediaLibraryUploadInput').click()">
+              <i data-lucide="upload"></i> Upload New Images
+              <input type="file" id="mediaLibraryUploadInput" multiple accept="image/*" style="display: none;" onchange="handleMediaLibraryUpload(event)" />
+            </button>
+          </div>
+
+          <div class="panel-card">
+            <div class="media-library-grid" id="mediaLibraryGrid">
+              <div class="empty-state" style="grid-column: 1/-1;">Loading uploaded images...</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 9: SETTINGS
+             ================================================================== -->
+        <section id="view-settings" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>Admin Account & Security Settings</h2>
+              <p>Manage your credentials and system backups.</p>
+            </div>
+          </div>
+
+          <div style="max-width: 600px;">
+            <div class="panel-card">
+              <h4 style="margin-bottom: 1.2rem; color: var(--warm-orange);">Change Admin Password</h4>
+              
+              <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+                <div class="form-group">
+                  <label for="oldPassword">Current Password</label>
+                  <input type="password" id="oldPassword" class="form-control" required placeholder="Enter current password" />
+                </div>
+
+                <div class="form-group">
+                  <label for="newPassword">New Password</label>
+                  <input type="password" id="newPassword" class="form-control" required placeholder="Enter new password (min 6 chars)" minlength="6" />
+                </div>
+
+                <div class="form-group">
+                  <label for="confirmNewPassword">Confirm New Password</label>
+                  <input type="password" id="confirmNewPassword" class="form-control" required placeholder="Re-type new password" minlength="6" />
+                </div>
+
+                <button type="submit" class="btn-primary">
+                  <i data-lucide="save"></i> Update Password
+                </button>
+              </form>
+            </div>
+
+            <div class="panel-card" style="margin-top: 1.5rem;">
+              <h4 style="margin-bottom: 0.5rem;">Database & Export Backup</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Your catalog is backed by a centralized SQLite database (`tarang.db`).
+              </p>
+              <button class="btn-secondary" onclick="exportDataBackupJson()">
+                <i data-lucide="download"></i> Export Data Backup (JSON)
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================================================
+       MODALS: NORMAL CATALOG
+       ========================================================================== -->
+
+  <!-- MODAL: ADD / EDIT NORMAL CATEGORY (NO BRAND FIELD) -->
+  <div class="modal-overlay" id="normalCategoryModalOverlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="normalCatModalTitle">Add Normal Category</h3>
+        <button class="modal-close-icon" onclick="closeNormalCategoryModal()">&times;</button>
+      </div>
+      <form id="normalCategoryForm" onsubmit="saveNormalCategory(event)">
+        <input type="hidden" id="normalCatFormId" />
+        
+        <div class="form-group">
+          <label for="normalCatFormTitle">Category Title *</label>
+          <input type="text" id="normalCatFormTitle" class="form-control" required placeholder="e.g. Batteries & Power, Sensors, Motors" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="normalCatFormShortTitle">Short Title (Navbar & Filter Chips)</label>
+            <input type="text" id="normalCatFormShortTitle" class="form-control" placeholder="e.g. Batteries" />
+          </div>
+
+          <div class="form-group">
+            <label for="normalCatFormColor">Theme Color</label>
+            <input type="color" id="normalCatFormColor" class="form-control" value="#D14B14" style="height: 42px; padding: 2px;" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="normalCatFormTagline">Tagline / Subtitle</label>
+          <input type="text" id="normalCatFormTagline" class="form-control" placeholder="e.g. Premium power solutions and battery packs" />
+        </div>
+
+        <div class="form-group">
+          <label for="normalCatFormImage">Category Image</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="normalCatFormImage" class="form-control" placeholder="uploads/category.jpg" />
+            <button type="button" class="btn-secondary" onclick="document.getElementById('normalCatImageUpload').click()">Upload</button>
+            <input type="file" id="normalCatImageUpload" accept="image/*" style="display: none;" onchange="uploadSingleImage(event, 'normalCatFormImage')" />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeNormalCategoryModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT NORMAL SUBCATEGORY -->
+  <div class="modal-overlay" id="normalSubcategoryModalOverlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="normalSubModalTitle">Add Normal Subcategory</h3>
+        <button class="modal-close-icon" onclick="closeNormalSubcategoryModal()">&times;</button>
+      </div>
+      <form id="normalSubcategoryForm" onsubmit="saveNormalSubcategory(event)">
+        <input type="hidden" id="normalSubFormId" />
+
+        <div class="form-group">
+          <label for="normalSubFormParentCat">Parent Category *</label>
+          <select id="normalSubFormParentCat" class="form-control" required>
+            <option value="">Select Category</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="normalSubFormName">Subcategory Name *</label>
+          <input type="text" id="normalSubFormName" class="form-control" required placeholder="e.g. 18650 Li-ion Cells, Ultrasonic Sensors" />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeNormalSubcategoryModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Subcategory</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT NORMAL PRODUCT (NO BRAND FIELD) -->
+  <div class="modal-overlay" id="normalProductModalOverlay">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 id="normalProdModalTitle">Add Normal Product</h3>
+        <button class="modal-close-icon" onclick="closeNormalProductModal()">&times;</button>
+      </div>
+      <form id="normalProductForm" onsubmit="saveNormalProduct(event)">
+        <input type="hidden" id="normalProdFormId" />
+
+        <div class="form-row">
+          <div class="form-group" style="flex: 2;">
+            <label for="normalProdFormName">Product Name *</label>
+            <input type="text" id="normalProdFormName" class="form-control" required placeholder="e.g. 3.7V Li-ion Battery 2600mAh" />
+          </div>
+
+          <div class="form-group" style="flex: 1;">
+            <label for="normalProdFormSku">SKU / Product Code</label>
+            <input type="text" id="normalProdFormSku" class="form-control" placeholder="e.g. TR-BAT-01" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="normalProdFormCat">Category *</label>
+            <select id="normalProdFormCat" class="form-control" required onchange="populateNormalSubcategoriesForProduct(this.value)">
+              <option value="">Select Category</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="normalProdFormSubcat">Subcategory</label>
+            <select id="normalProdFormSubcat" class="form-control">
+              <option value="">Select Subcategory</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="normalProdFormPrice">Price (₹) *</label>
+            <input type="number" step="0.01" min="0" id="normalProdFormPrice" class="form-control" required placeholder="e.g. 180" />
+          </div>
+
+          <div class="form-group">
+            <label for="normalProdFormStock">Stock Status</label>
+            <select id="normalProdFormStock" class="form-control">
+              <option value="1">In Stock</option>
+              <option value="0">Out of Stock</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="normalProdFormBadge">Badge (Optional)</label>
+            <input type="text" id="normalProdFormBadge" class="form-control" placeholder="e.g. Best Seller, Top Rated" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="normalProdFormImage">Product Image</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" id="normalProdFormImage" class="form-control" placeholder="uploads/item.jpg" oninput="updateNormalProdImagePreview(this.value)" />
+            <button type="button" class="btn-secondary" onclick="document.getElementById('normalProdImageUpload').click()">Upload Image</button>
+            <input type="file" id="normalProdImageUpload" accept="image/*" style="display: none;" onchange="uploadSingleImage(event, 'normalProdFormImage', updateNormalProdImagePreview)" />
+          </div>
+          <div id="normalProdImagePreviewBox" style="margin-top: 0.5rem; display: none;">
+            <img id="normalProdImagePreviewImg" src="" style="width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="normalProdFormDesc">Product Description</label>
+          <textarea id="normalProdFormDesc" class="form-control" rows="3" placeholder="Technical specs and product description..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeNormalProductModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODALS: THE BRANDS WE DEAL WITH (BRAND-SPECIFIC)
+       ========================================================================== -->
+
+  <!-- MODAL: ADD / EDIT BRAND -->
+  <div class="modal-overlay" id="brandModalOverlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="brandModalTitle">Add Brand Partner</h3>
+        <button class="modal-close-icon" onclick="closeBrandModal()">&times;</button>
+      </div>
+      <form id="brandForm" onsubmit="saveBrand(event)">
+        <input type="hidden" id="brandFormId" />
+        
+        <div class="form-group">
+          <label for="brandFormName">Brand Name * (Pure text, no logos)</label>
+          <input type="text" id="brandFormName" class="form-control" required placeholder="e.g. Gillard, Alcop, DVM, Hoki, Noel, Kushiro, INGCO" />
+        </div>
+
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.88rem;">
+            <input type="checkbox" id="brandFormEnabled" checked />
+            <span>Enable Brand (Visible on Public Website)</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeBrandModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Brand</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT BRAND CATEGORY -->
+  <div class="modal-overlay" id="brandCategoryModalOverlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="brandCatModalTitle">Add Category Under Brand</h3>
+        <button class="modal-close-icon" onclick="closeBrandCategoryModal()">&times;</button>
+      </div>
+      <form id="brandCategoryForm" onsubmit="saveBrandCategory(event)">
+        <input type="hidden" id="brandCatFormId" />
+        <input type="hidden" id="brandCatFormBrandId" />
+        
+        <div class="form-group">
+          <label>Selected Brand</label>
+          <input type="text" id="brandCatFormBrandNameDisplay" class="form-control" disabled style="background:#FFF9EE; font-weight:700; color:var(--warm-orange);" />
+        </div>
+
+        <div class="form-group">
+          <label for="brandCatFormTitle">Category Title *</label>
+          <input type="text" id="brandCatFormTitle" class="form-control" required placeholder="e.g. Wires, Cables, Power Tools, Hand Tools" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="brandCatFormShortTitle">Short Title</label>
+            <input type="text" id="brandCatFormShortTitle" class="form-control" placeholder="e.g. Wires" />
+          </div>
+
+          <div class="form-group">
+            <label for="brandCatFormColor">Theme Color</label>
+            <input type="color" id="brandCatFormColor" class="form-control" value="#D14B14" style="height: 42px; padding: 2px;" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="brandCatFormTagline">Tagline</label>
+          <input type="text" id="brandCatFormTagline" class="form-control" placeholder="e.g. Heavy Duty Brand Certified Cables" />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeBrandCategoryModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT BRAND SUBCATEGORY -->
+  <div class="modal-overlay" id="brandSubcategoryModalOverlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="brandSubModalTitle">Add Subcategory Under Brand</h3>
+        <button class="modal-close-icon" onclick="closeBrandSubcategoryModal()">&times;</button>
+      </div>
+      <form id="brandSubcategoryForm" onsubmit="saveBrandSubcategory(event)">
+        <input type="hidden" id="brandSubFormId" />
+        <input type="hidden" id="brandSubFormCatId" />
+
+        <div class="form-group">
+          <label>Parent Category</label>
+          <input type="text" id="brandSubFormCatTitleDisplay" class="form-control" disabled style="background:#FFF9EE; font-weight:700; color:var(--warm-orange);" />
+        </div>
+
+        <div class="form-group">
+          <label for="brandSubFormName">Subcategory Name *</label>
+          <input type="text" id="brandSubFormName" class="form-control" required placeholder="e.g. Copper Wires, Flexible Cables, Hand Tools" />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeBrandSubcategoryModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Subcategory</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT BRAND PRODUCT -->
+  <div class="modal-overlay" id="brandProductModalOverlay">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 id="brandProdModalTitle">Add Product Under Brand</h3>
+        <button class="modal-close-icon" onclick="closeBrandProductModal()">&times;</button>
+      </div>
+      <form id="brandProductForm" onsubmit="saveBrandProduct(event)">
+        <input type="hidden" id="brandProdFormId" />
+        <input type="hidden" id="brandProdFormBrandId" />
+        <input type="hidden" id="brandProdFormCatId" />
+
+        <div class="form-row">
+          <div class="form-group" style="flex: 2;">
+            <label for="brandProdFormName">Product Name *</label>
+            <input type="text" id="brandProdFormName" class="form-control" required placeholder="e.g. DVM 1.5mm Copper Wire Roll 90m" />
+          </div>
+
+          <div class="form-group" style="flex: 1;">
+            <label for="brandProdFormSku">SKU / Code</label>
+            <input type="text" id="brandProdFormSku" class="form-control" placeholder="e.g. DVM-WIR-01" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Brand & Category</label>
+            <input type="text" id="brandProdFormMetaDisplay" class="form-control" disabled style="background:#FFF9EE; font-weight:700; color:var(--warm-orange);" />
+          </div>
+
+          <div class="form-group">
+            <label for="brandProdFormSubcat">Subcategory</label>
+            <select id="brandProdFormSubcat" class="form-control">
+              <option value="">Select Subcategory</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="brandProdFormPrice">Price (₹) *</label>
+            <input type="number" step="0.01" min="0" id="brandProdFormPrice" class="form-control" required placeholder="e.g. 850" />
+          </div>
+
+          <div class="form-group">
+            <label for="brandProdFormStock">Stock Status</label>
+            <select id="brandProdFormStock" class="form-control">
+              <option value="1">In Stock</option>
+              <option value="0">Out of Stock</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="brandProdFormBadge">Badge (Optional)</label>
+            <input type="text" id="brandProdFormBadge" class="form-control" placeholder="e.g. Pure Copper, 100% Certified" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="brandProdFormImage">Product Image</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" id="brandProdFormImage" class="form-control" placeholder="uploads/wire.jpg" oninput="updateBrandProdImagePreview(this.value)" />
+            <button type="button" class="btn-secondary" onclick="document.getElementById('brandProdImageUpload').click()">Upload Image</button>
+            <input type="file" id="brandProdImageUpload" accept="image/*" style="display: none;" onchange="uploadSingleImage(event, 'brandProdFormImage', updateBrandProdImagePreview)" />
+          </div>
+          <div id="brandProdImagePreviewBox" style="margin-top: 0.5rem; display: none;">
+            <img id="brandProdImagePreviewImg" src="" style="width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="brandProdFormDesc">Product Description</label>
+          <textarea id="brandProdFormDesc" class="form-control" rows="3" placeholder="Technical details, insulation type, wire gauge..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeBrandProductModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Admin Controller Script -->
+  <script src="admin.js"></script>
+</body>
+</html>
