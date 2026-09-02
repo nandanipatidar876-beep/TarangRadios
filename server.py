@@ -1427,7 +1427,9 @@ def run_server():
         print(f" Database Engine : {engine_label}")
         print(f" Media Storage   : {cloud_label}")
         print(f" Admin Dashboard : http://localhost:{PORT}/admin/")
-        print(f" Default Admin   : username='admin', password='admin123'")
+        admin_user = os.environ.get("ADMIN_USERNAME", "").strip()
+        if admin_user:
+            print(f" Admin User      : '{admin_user}' (from .env)")
         print(f"=======================================================\n")
         try:
             httpd.serve_forever()

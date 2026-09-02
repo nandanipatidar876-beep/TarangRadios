@@ -10,6 +10,14 @@ import uuid
 import hashlib
 import secrets
 from datetime import datetime
+
+# Try loading python-dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+except ImportError:
+    pass
+
 from db import get_db, get_engine_type
 
 MIGRATIONS_DIR = os.path.join(os.path.dirname(__file__), "migrations")
@@ -103,30 +111,41 @@ def run_all_migrations():
             print(f"[MIGRATION] Successfully applied {applied_count} migrations to {engine.upper()}.")
 
 def ensure_default_admin(db):
-    """Ensures at least one admin account exists using env vars or default."""
+    """Initializes or updates admin account strictly from environment variables (ADMIN_USERNAME, ADMIN_PASSWORD)."""
     try:
-        admin_row = db.fetchone("SELECT COUNT(*) as count FROM admins")
-        if not admin_row or admin_row.get("count", 0) == 0:
-            admin_user = os.environ.get("ADMIN_USERNAME", "admin").strip() or "admin"
-            admin_pwd = os.environ.get("ADMIN_PASSWORD", "admin123").strip() or "admin123"
+        admin_user = os.environ.get("ADMIN_USERNAME", "").strip()
+        admin_pwd = os.environ.get("ADMIN_PASSWORD", "").strip()
 
+        if not admin_user or not admin_pwd:
+            return
+
+        admin_row = db.fetchone("SELECT id, username FROM admins LIMIT 1")
+        now = datetime.now().isoformat()
+        salt = secrets.token_hex(16)
+        pwd_hash = hashlib.pbkdf2_hmac(
+            'sha256',
+            admin_pwd.encode('utf-8'),
+            salt.encode('utf-8'),
+            100000
+        ).hex()
+
+        if not admin_row:
             admin_id = str(uuid.uuid4())
-            salt = secrets.token_hex(16)
-            pwd_hash = hashlib.pbkdf2_hmac(
-                'sha256',
-                admin_pwd.encode('utf-8'),
-                salt.encode('utf-8'),
-                100000
-            ).hex()
-            now = datetime.now().isoformat()
             db.execute(
                 "INSERT INTO admins (id, username, password_hash, salt, name, created_at) VALUES (?, ?, ?, ?, ?, ?)",
                 (admin_id, admin_user, pwd_hash, salt, "Super Administrator", now)
             )
             db.commit()
-            print(f"[MIGRATION] Admin account initialized (username: '{admin_user}').")
+            print(f"[MIGRATION] Admin account initialized from environment (username: '{admin_user}').")
+        else:
+            db.execute(
+                "UPDATE admins SET username = ?, password_hash = ?, salt = ? WHERE id = ?",
+                (admin_user, pwd_hash, salt, admin_row["id"])
+            )
+            db.commit()
+            print(f"[MIGRATION] Admin credentials synchronized from environment.")
     except Exception as e:
-        print(f"[MIGRATION WARNING] Could not verify admin account: {e}")
+        print(f"[MIGRATION WARNING] Could not sync admin account: {e}")
 
 def print_migration_status():
     """Prints migration status table."""
