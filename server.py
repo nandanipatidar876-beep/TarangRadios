@@ -6,7 +6,6 @@ Features strict separation between Normal Catalog and 'The Brands We Deal With'.
 
 import http.server
 import socketserver
-import sqlite3
 import json
 import os
 import sys
@@ -16,21 +15,19 @@ import secrets
 import urllib.parse
 from datetime import datetime, timedelta
 
-PORT = 8000
-DB_FILE = os.path.join(os.path.dirname(__file__), "tarang.db")
+from db import get_db, get_status as get_db_status
+from migrate import run_all_migrations
+import cloudinary_service
+
+PORT = int(os.environ.get("PORT", 8000))
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 STATIC_DIR = os.path.dirname(__file__)
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------------
-# Database Initialization & Helpers
+# Password & Hash Helpers
 # ---------------------------------------------------------------------------
-def get_db():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 def hash_password(password: str, salt: str = None) -> tuple[str, str]:
     if not salt:
         salt = secrets.token_hex(16)
@@ -46,175 +43,6 @@ def verify_password(password: str, pwd_hash: str, salt: str) -> bool:
     new_hash, _ = hash_password(password, salt)
     return secrets.compare_digest(new_hash, pwd_hash)
 
-def init_db():
-    conn = get_db()
-    cursor = conn.cursor()
-
-    # Admins table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS admins (
-        id TEXT PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        salt TEXT NOT NULL,
-        name TEXT,
-        created_at TEXT NOT NULL
-    )
-    """)
-
-    # Sessions table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS sessions (
-        token TEXT PRIMARY KEY,
-        admin_id TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        FOREIGN KEY (admin_id) REFERENCES admins(id)
-    )
-    """)
-
-    # Brands table (Strictly for 'The Brands We Deal With' - No logos)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS brands (
-        id TEXT PRIMARY KEY,
-        name TEXT UNIQUE NOT NULL,
-        display_order INTEGER DEFAULT 0,
-        is_enabled INTEGER DEFAULT 1,
-        created_at TEXT,
-        updated_at TEXT
-    )
-    """)
-
-    # Check & migrate brands columns
-    cursor.execute("PRAGMA table_info(brands)")
-    b_cols = [col[1] for col in cursor.fetchall()]
-    if "display_order" not in b_cols:
-        try: cursor.execute("ALTER TABLE brands ADD COLUMN display_order INTEGER DEFAULT 0")
-        except Exception: pass
-    if "is_enabled" not in b_cols:
-        try: cursor.execute("ALTER TABLE brands ADD COLUMN is_enabled INTEGER DEFAULT 1")
-        except Exception: pass
-    if "created_at" not in b_cols:
-        try: cursor.execute("ALTER TABLE brands ADD COLUMN created_at TEXT")
-        except Exception: pass
-    if "updated_at" not in b_cols:
-        try: cursor.execute("ALTER TABLE brands ADD COLUMN updated_at TEXT")
-        except Exception: pass
-
-    # Categories table (brand_id is NULL for Normal Categories, or points to a Brand in 'The Brands We Deal With')
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS categories (
-        id TEXT PRIMARY KEY,
-        brand_id TEXT,
-        title TEXT NOT NULL,
-        short_title TEXT,
-        tagline TEXT,
-        icon TEXT DEFAULT 'layers',
-        image TEXT,
-        color TEXT DEFAULT '#D14B14',
-        display_order INTEGER DEFAULT 0,
-        created_at TEXT,
-        updated_at TEXT,
-        FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE
-    )
-    """)
-
-    cursor.execute("PRAGMA table_info(categories)")
-    c_cols = [col[1] for col in cursor.fetchall()]
-    if "brand_id" not in c_cols:
-        try: cursor.execute("ALTER TABLE categories ADD COLUMN brand_id TEXT")
-        except Exception: pass
-
-    # Subcategories table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS subcategories (
-        id TEXT PRIMARY KEY,
-        category_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        display_order INTEGER DEFAULT 0,
-        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-    )
-    """)
-
-    # Products table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS products (
-        id TEXT PRIMARY KEY,
-        sku TEXT,
-        name TEXT NOT NULL,
-        brand_id TEXT,
-        brand TEXT,
-        category_id TEXT NOT NULL,
-        subcategory TEXT,
-        price REAL NOT NULL DEFAULT 0,
-        badge TEXT,
-        in_stock INTEGER DEFAULT 1,
-        image TEXT,
-        description TEXT,
-        specs TEXT,
-        rating REAL DEFAULT 5.0,
-        reviews INTEGER DEFAULT 0,
-        created_at TEXT,
-        updated_at TEXT,
-        FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE,
-        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-    )
-    """)
-
-    cursor.execute("PRAGMA table_info(products)")
-    p_cols = [col[1] for col in cursor.fetchall()]
-    if "brand_id" not in p_cols:
-        try: cursor.execute("ALTER TABLE products ADD COLUMN brand_id TEXT")
-        except Exception: pass
-
-    conn.commit()
-
-    # Create default Admin if none exists
-    cursor.execute("SELECT COUNT(*) FROM admins")
-    if cursor.fetchone()[0] == 0:
-        admin_id = str(uuid.uuid4())
-        pwd_hash, salt = hash_password("admin123")
-        cursor.execute(
-            "INSERT INTO admins (id, username, password_hash, salt, name, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (admin_id, "admin", pwd_hash, salt, "Super Administrator", datetime.now().isoformat())
-        )
-        conn.commit()
-
-    # Ensure the 7 required brands are seeded in 'The Brands We Deal With'
-    seed_seven_brands(conn)
-
-    # Ensure normal categories have brand_id NULL (uncoupled from brands)
-    cursor.execute("UPDATE categories SET brand_id = NULL WHERE brand_id = 'brand_tarang' OR brand_id = ''")
-    cursor.execute("UPDATE products SET brand_id = NULL WHERE brand_id = 'brand_tarang' OR brand_id = ''")
-    conn.commit()
-
-    conn.close()
-
-def seed_seven_brands(conn):
-    cursor = conn.cursor()
-    # The 7 required brands as specified by user:
-    # 1. Gillard, 2. Alcop, 3. DVM, 4. Hoki, 5. Noel, 6. Kushiro, 7. INGCO
-    required_brands = [
-        ("brand_gillard", "Gillard", 0),
-        ("brand_alcop", "Alcop", 1),
-        ("brand_dvm", "DVM", 2),
-        ("brand_hoki", "Hoki", 3),
-        ("brand_noel", "Noel", 4),
-        ("brand_kushiro", "Kushiro", 5),
-        ("brand_ingco", "INGCO", 6)
-    ]
-
-    now = datetime.now().isoformat()
-    for bid, bname, order in required_brands:
-        cursor.execute("SELECT id FROM brands WHERE LOWER(name) = LOWER(?)", (bname,))
-        if not cursor.fetchone():
-            cursor.execute("""
-                INSERT INTO brands (id, name, display_order, is_enabled, created_at, updated_at)
-                VALUES (?, ?, ?, 1, ?, ?)
-            """, (bid, bname, order, now, now))
-
-    # Remove any unwanted brand placeholder
-    cursor.execute("DELETE FROM brands WHERE id = 'brand_tarang' OR name = 'Tarang'")
-    conn.commit()
 
 # ---------------------------------------------------------------------------
 # Authentication Session Validation
@@ -302,6 +130,15 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Public Data
         if path == "/api/public-data":
             return self.handle_get_public_data()
+
+        # System Status & Health Check
+        if path == "/api/status":
+            return self.send_json({
+                "status": "online",
+                "database": get_db_status(),
+                "cloudinary": cloudinary_service.get_status(),
+                "timestamp": datetime.now().isoformat()
+            })
 
         # Auth
         if path == "/api/auth/me":
@@ -1385,23 +1222,29 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
                     if not clean_name:
                         continue
 
-                    dest_path = os.path.join(UPLOAD_DIR, clean_name)
-                    with open(dest_path, "wb") as f:
-                        f.write(body_part)
+                    # Upload to Cloudinary (or local fallback if not configured)
+                    upload_res = cloudinary_service.upload_image(
+                        body_part,
+                        filename=clean_name,
+                        folder="tarang_radios/products"
+                    )
 
-                    file_url = f"uploads/{clean_name}"
                     uploaded_files.append({
-                        "filename": clean_name,
+                        "filename": upload_res.get("filename", clean_name),
                         "originalFilename": filename_attr,
-                        "url": file_url,
+                        "url": upload_res.get("url", f"uploads/{clean_name}"),
+                        "is_cloud": upload_res.get("is_cloud", False),
                         "size": len(body_part)
                     })
 
+        is_cloud_dest = any(f.get("is_cloud") for f in uploaded_files)
+        dest_label = "Cloudinary CDN" if is_cloud_dest else "local storage"
         return self.send_json({
             "success": True,
             "count": len(uploaded_files),
             "files": uploaded_files,
-            "message": f"Uploaded {len(uploaded_files)} images."
+            "is_cloud": is_cloud_dest,
+            "message": f"Successfully uploaded {len(uploaded_files)} images to {dest_label}."
         })
 
     def handle_bulk_product_import(self):
@@ -1569,14 +1412,22 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def run_server():
-    init_db()
+    run_all_migrations()
+    db_status = get_db_status()
+    cloud_status = cloudinary_service.get_status()
+
+    engine_label = "PostgreSQL" if db_status.get("is_postgres") else "SQLite (tarang.db)"
+    cloud_label = f"Cloudinary ({cloud_status['cloud_name']})" if cloud_status.get("configured") else "Local uploads/ fallback"
+
     handler = TarangRequestHandler
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), handler) as httpd:
         print(f"\n=======================================================")
         print(f" TARANG RADIOS SERVER RUNNING AT http://localhost:{PORT}")
-        print(f" Admin Dashboard: http://localhost:{PORT}/admin/")
-        print(f" Default Admin Credentials: username='admin', password='admin123'")
+        print(f" Database Engine : {engine_label}")
+        print(f" Media Storage   : {cloud_label}")
+        print(f" Admin Dashboard : http://localhost:{PORT}/admin/")
+        print(f" Default Admin   : username='admin', password='admin123'")
         print(f"=======================================================\n")
         try:
             httpd.serve_forever()
