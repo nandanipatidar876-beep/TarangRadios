@@ -103,25 +103,28 @@ def run_all_migrations():
             print(f"[MIGRATION] Successfully applied {applied_count} migrations to {engine.upper()}.")
 
 def ensure_default_admin(db):
-    """Ensures at least one admin account exists with admin / admin123."""
+    """Ensures at least one admin account exists using env vars or default."""
     try:
         admin_row = db.fetchone("SELECT COUNT(*) as count FROM admins")
         if not admin_row or admin_row.get("count", 0) == 0:
+            admin_user = os.environ.get("ADMIN_USERNAME", "admin").strip() or "admin"
+            admin_pwd = os.environ.get("ADMIN_PASSWORD", "admin123").strip() or "admin123"
+
             admin_id = str(uuid.uuid4())
             salt = secrets.token_hex(16)
             pwd_hash = hashlib.pbkdf2_hmac(
                 'sha256',
-                "admin123".encode('utf-8'),
+                admin_pwd.encode('utf-8'),
                 salt.encode('utf-8'),
                 100000
             ).hex()
             now = datetime.now().isoformat()
             db.execute(
                 "INSERT INTO admins (id, username, password_hash, salt, name, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                (admin_id, "admin", pwd_hash, salt, "Super Administrator", now)
+                (admin_id, admin_user, pwd_hash, salt, "Super Administrator", now)
             )
             db.commit()
-            print("[MIGRATION] Default admin account seeded (username: 'admin', password: 'admin123').")
+            print(f"[MIGRATION] Admin account initialized (username: '{admin_user}').")
     except Exception as e:
         print(f"[MIGRATION WARNING] Could not verify admin account: {e}")
 
