@@ -59,6 +59,13 @@ class DBCursorWrapper:
 
     def executemany(self, sql: str, params_seq):
         formatted_sql = self._format_sql(sql)
+        if self.engine_type == "postgres" and PSYCOPG2_AVAILABLE:
+            try:
+                import psycopg2.extras
+                return psycopg2.extras.execute_batch(self.cursor, formatted_sql, params_seq, page_size=200)
+            except Exception as e:
+                # Fallback to standard executemany if execute_batch fails
+                pass
         return self.cursor.executemany(formatted_sql, params_seq)
 
     def fetchone(self):
