@@ -91,7 +91,14 @@ def run_all_migrations():
 
             statements = split_sql_statements(content)
             for stmt in statements:
-                db.execute(stmt)
+                try:
+                    db.execute(stmt)
+                except Exception as stmt_err:
+                    if engine == "sqlite" and "ALTER COLUMN" in stmt.upper():
+                        # SQLite does not enforce VARCHAR length and doesn't support ALTER COLUMN
+                        pass
+                    else:
+                        raise stmt_err
 
             now_str = datetime.now().isoformat()
             db.execute(
