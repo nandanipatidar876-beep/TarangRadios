@@ -177,10 +177,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Tarang Radios - Database Migration & Production Catalog Sync Runner")
-    parser.add_argument("command", nargs="?", default="up", choices=["up", "status", "init-admin", "sync-prod", "sync-noel", "sync-dvm"], help="Command to run (default: up)")
+    parser.add_argument("command", nargs="?", default="up", choices=["up", "status", "init-admin", "sync-prod", "sync-noel", "sync-dvm", "sync-alcop"], help="Command to run (default: up)")
     parser.add_argument("--sync-prod", action="store_true", help="Sync local scraped catalog & images directly to production")
     parser.add_argument("--sync-noel", action="store_true", help="Scrape Noel India (noelindia.com) and sync under Brand: Noel")
     parser.add_argument("--sync-dvm", action="store_true", help="Scrape DVM India (dvmindia.in) and sync under Brand: DVM")
+    parser.add_argument("--sync-alcop", action="store_true", help="Scrape ALCOP India (alcopwires.com) and sync under Brand: ALCOP")
     parser.add_argument("--catalog", default=r"D:\scrapping\products_catalog.json", help="Path to products_catalog.json")
     parser.add_argument("--images-dir", default=r"D:\scrapping\product_images", help="Path to product images root directory")
     parser.add_argument("--db-url", help="Override database connection URL (PostgreSQL / SQLite)")
@@ -190,7 +191,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.sync_dvm or args.command == "sync-dvm":
+    if args.sync_alcop or args.command == "sync-alcop":
+        from scrap_alcop import sync_alcop_catalog
+        sync_alcop_catalog(
+            db_url=args.db_url,
+            workers=args.workers,
+            dry_run=args.dry_run,
+            skip_images=args.skip_images
+        )
+    elif args.sync_dvm or args.command == "sync-dvm":
         from scrap_dvm import sync_dvm_catalog
         sync_dvm_catalog(
             db_url=args.db_url,
