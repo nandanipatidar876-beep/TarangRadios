@@ -339,126 +339,152 @@ def sync_noel_catalog(
         print("\n[DRY RUN COMPLETE] Everything verified successfully! Run without --dry-run to commit.")
         return True
 
-    print(f"\n[STEP 3] Seeding Noel Catalog into Database ({get_engine_type().upper()})...")
-    run_all_migrations()
-    now_iso = datetime.now().isoformat()
+    def seed_db_target(db_conn_str, label):
+        print(f"\n[STEP 3] Seeding Noel Catalog into Database ({label})...", flush=True)
+        if db_conn_str:
+            os.environ["DATABASE_URL"] = db_conn_str
+        else:
+            os.environ["DATABASE_URL"] = ""
 
-    with get_db() as db:
-        # 1. Ensure Noel Brand Exists in brands table
-        db.execute("""
-            INSERT INTO brands (id, name, display_order, is_enabled, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT (id) DO UPDATE SET
-                name = EXCLUDED.name,
-                is_enabled = EXCLUDED.is_enabled,
-                updated_at = EXCLUDED.updated_at
-        """, ("brand_noel", "Noel", 0, 1, now_iso, now_iso))
-        db.commit()
-        print("  -> [OK] Brand 'Noel' (brand_noel) verified in brands table.")
+        run_all_migrations()
+        now_iso = datetime.now().isoformat()
 
-        # 2. Upsert Brand Categories (brand_id = 'brand_noel')
-        cat_rows = []
-        for cat in brand_categories.values():
-            cat_img = product_image_urls.get(cat.get("sample_prod_id")) or cat["image"]
-            cat_rows.append((
-                cat["id"],
-                "brand_noel", # Strictly mapped to Noel brand
-                cat["title"],
-                cat["short_title"],
-                cat["tagline"],
-                cat["icon"],
-                cat_img,
-                cat["color"],
-                cat["display_order"],
-                now_iso,
-                now_iso
-            ))
+        with get_db() as db:
+            # 1. Resolve Noel Brand ID dynamically
+            existing_brand = db.fetchone("SELECT id, name FROM brands WHERE LOWER(name) = 'noel'")
+            if existing_brand:
+                noel_brand_id = existing_brand["id"]
+                db.execute("UPDATE brands SET is_enabled = 1, updated_at = ? WHERE id = ?", (now_iso, noel_brand_id))
+                db.commit()
+            else:
+                noel_brand_id = "brand_noel"
+                db.execute("""
+                    INSERT INTO brands (id, name, display_order, is_enabled, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        is_enabled = EXCLUDED.is_enabled,
+                        updated_at = EXCLUDED.updated_at
+                """, (noel_brand_id, "Noel", 0, 1, now_iso, now_iso))
+                db.commit()
+            print(f"  -> [OK] Brand 'Noel' (ID: '{noel_brand_id}') verified in brands table.", flush=True)
 
-        db.executemany("""
-            INSERT INTO categories (id, brand_id, title, short_title, tagline, icon, image, color, display_order, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (id) DO UPDATE SET
-                brand_id = EXCLUDED.brand_id,
-                title = EXCLUDED.title,
-                short_title = EXCLUDED.short_title,
-                tagline = EXCLUDED.tagline,
-                image = EXCLUDED.image,
-                updated_at = EXCLUDED.updated_at
-        """, cat_rows)
-        db.commit()
-        print(f"  -> [OK] {len(cat_rows)} Brand Categories upserted under Noel.")
+            # 2. Upsert Brand Categories (brand_id = noel_brand_id)
+            cat_rows = []
+            for cat in brand_categories.values():
+                cat_img = product_image_urls.get(cat.get("sample_prod_id")) or cat["image"]
+                cat_rows.append((
+                    cat["id"],
+                    noel_brand_id,
+                    cat["title"],
+                    cat["short_title"],
+                    cat["tagline"],
+                    cat["icon"],
+                    cat_img,
+                    cat["color"],
+                    cat["display_order"],
+                    now_iso,
+                    now_iso
+                ))
 
-        # 3. Upsert Brand Subcategories
-        sub_rows = []
-        for sub in brand_subcategories.values():
-            sub_rows.append((
-                sub["id"],
-                sub["category_id"],
-                sub["name"],
-                sub["display_order"]
-            ))
+            db.executemany("""
+                INSERT INTO categories (id, brand_id, title, short_title, tagline, icon, image, color, display_order, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (id) DO UPDATE SET
+                    brand_id = EXCLUDED.brand_id,
+                    title = EXCLUDED.title,
+                    short_title = EXCLUDED.short_title,
+                    tagline = EXCLUDED.tagline,
+                    image = EXCLUDED.image,
+                    updated_at = EXCLUDED.updated_at
+            """, cat_rows)
+            db.commit()
+            print(f"  -> [OK] {len(cat_rows)} Brand Categories upserted under Noel.", flush=True)
 
-        db.executemany("""
-            INSERT INTO subcategories (id, category_id, name, display_order)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT (id) DO UPDATE SET
-                name = EXCLUDED.name,
-                display_order = EXCLUDED.display_order
-        """, sub_rows)
-        db.commit()
-        print(f"  -> [OK] {len(sub_rows)} Brand Subcategories upserted under Noel.")
+            # 3. Upsert Brand Subcategories
+            sub_rows = []
+            for sub in brand_subcategories.values():
+                sub_rows.append((
+                    sub["id"],
+                    sub["category_id"],
+                    sub["name"],
+                    sub["display_order"]
+                ))
 
-        # 4. Upsert Brand Products
-        prod_rows = []
-        for item in catalog_items:
-            final_img = product_image_urls.get(item["id"]) or cache.get(item["source_image_url"]) or item["source_image_url"]
-            badge = "In Stock" if item["in_stock"] else "Out of Stock"
-            
-            prod_rows.append((
-                item["prod_db_id"],
-                item["sku"],
-                item["name"],
-                "brand_noel",  # brand_id
-                "Noel",        # brand
-                item["category_id"],
-                item["subcategory"],
-                item["price"],
-                badge,
-                item["in_stock"],
-                final_img,
-                item["description"],
-                item["specs"],
-                5.0,
-                0,
-                now_iso,
-                now_iso
-            ))
+            db.executemany("""
+                INSERT INTO subcategories (id, category_id, name, display_order)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT (id) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    display_order = EXCLUDED.display_order
+            """, sub_rows)
+            db.commit()
+            print(f"  -> [OK] {len(sub_rows)} Brand Subcategories upserted under Noel.", flush=True)
 
-        db.executemany("""
-            INSERT INTO products (id, sku, name, brand_id, brand, category_id, subcategory, price, badge, in_stock, image, description, specs, rating, reviews, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (id) DO UPDATE SET
-                name = EXCLUDED.name,
-                sku = EXCLUDED.sku,
-                brand_id = EXCLUDED.brand_id,
-                brand = EXCLUDED.brand,
-                category_id = EXCLUDED.category_id,
-                subcategory = EXCLUDED.subcategory,
-                price = EXCLUDED.price,
-                badge = EXCLUDED.badge,
-                in_stock = EXCLUDED.in_stock,
-                image = EXCLUDED.image,
-                description = EXCLUDED.description,
-                specs = EXCLUDED.specs,
-                updated_at = EXCLUDED.updated_at
-        """, prod_rows)
-        db.commit()
-        print(f"  -> [OK] {len(prod_rows)} Noel Products upserted under Noel brand.")
+            # 4. Upsert Brand Products
+            prod_rows = []
+            for item in catalog_items:
+                final_img = product_image_urls.get(item["id"]) or cache.get(item["source_image_url"]) or item["source_image_url"]
+                badge = "In Stock" if item["in_stock"] else "Out of Stock"
+                
+                prod_rows.append((
+                    item["prod_db_id"],
+                    item["sku"],
+                    item["name"],
+                    noel_brand_id,
+                    "Noel",
+                    item["category_id"],
+                    item["subcategory"],
+                    item["price"],
+                    badge,
+                    item["in_stock"],
+                    final_img,
+                    item["description"],
+                    item["specs"],
+                    5.0,
+                    0,
+                    now_iso,
+                    now_iso
+                ))
 
-    print("\n-----------------------------------------------------------------")
-    print(f"SYNC COMPLETE: Successfully synchronized {len(catalog_items)} Noel products")
-    print(f"across {len(brand_categories)} categories under Brand 'Noel'!")
-    print("=================================================================\n")
+            db.executemany("""
+                INSERT INTO products (id, sku, name, brand_id, brand, category_id, subcategory, price, badge, in_stock, image, description, specs, rating, reviews, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (id) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    sku = EXCLUDED.sku,
+                    brand_id = EXCLUDED.brand_id,
+                    brand = EXCLUDED.brand,
+                    category_id = EXCLUDED.category_id,
+                    subcategory = EXCLUDED.subcategory,
+                    price = EXCLUDED.price,
+                    badge = EXCLUDED.badge,
+                    in_stock = EXCLUDED.in_stock,
+                    image = EXCLUDED.image,
+                    description = EXCLUDED.description,
+                    specs = EXCLUDED.specs,
+                    updated_at = EXCLUDED.updated_at
+            """, prod_rows)
+            db.commit()
+            print(f"  -> [OK] {len(prod_rows)} Noel Products upserted under Noel brand.", flush=True)
+
+    # Seed primary DB (e.g. Postgres from .env or db_url)
+    primary_db = db_url or os.environ.get("DATABASE_URL", "")
+    seed_db_target(primary_db, get_engine_type().upper())
+
+    # If primary is Postgres and local tarang.db exists, also sync local tarang.db
+    if primary_db and os.path.exists(os.path.join(os.path.dirname(__file__), "tarang.db")):
+        try:
+            seed_db_target("", "LOCAL SQLITE tarang.db")
+        except Exception as e:
+            print(f"  [WARNING] Could not sync local tarang.db: {e}", flush=True)
+        # Restore primary DB in env
+        os.environ["DATABASE_URL"] = primary_db
+
+    print("\n-----------------------------------------------------------------", flush=True)
+    print(f"SYNC COMPLETE: Successfully synchronized {len(catalog_items)} Noel products", flush=True)
+    print(f"across {len(brand_categories)} categories under Brand 'Noel'!", flush=True)
+    print("=================================================================\n", flush=True)
     return True
 
 if __name__ == "__main__":
