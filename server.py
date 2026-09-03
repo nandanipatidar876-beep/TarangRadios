@@ -636,8 +636,13 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
                 }
 
                 c_subs = [s for s in subcategories if s["category_id"] == c["id"]]
+                matched_prod_ids = set()
+
                 for s in c_subs:
-                    s_prods = [p for p in products if p["category_id"] == c["id"] and p["subcategory"] == s["name"]]
+                    s_prods = [p for p in products if p["category_id"] == c["id"] and (p.get("subcategory") or "").lower() == (s.get("name") or "").lower()]
+                    for p in s_prods:
+                        matched_prod_ids.add(p["id"])
+
                     s_node = {
                         "id": s["id"],
                         "name": s["name"],
@@ -646,13 +651,14 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
                     }
                     c_node["subcategories"].append(s_node)
 
-                direct_prods = [p for p in products if p["category_id"] == c["id"] and not p.get("subcategory")]
-                if direct_prods:
+                # Catch any direct or remaining products under category
+                remaining_prods = [p for p in products if p["category_id"] == c["id"] and p["id"] not in matched_prod_ids]
+                if remaining_prods:
                     c_node["subcategories"].append({
                         "id": f"sub_{c['id']}_general",
-                        "name": "General",
-                        "productsCount": len(direct_prods),
-                        "products": direct_prods
+                        "name": "Standard Series",
+                        "productsCount": len(remaining_prods),
+                        "products": remaining_prods
                     })
 
                 b_node["categories"].append(c_node)

@@ -859,9 +859,9 @@ async function loadActiveBrandHierarchy(brandId) {
       const subcatsHtml = cat.subcategories.map(sub => {
         const prodsHtml = sub.products.map(prod => `
           <div class="tree-product-pill">
-            <img src="../${prod.image || 'https://via.placeholder.com/60'}" onerror="this.src='https://via.placeholder.com/60'" />
+            <img src="${formatImgUrl(prod.image)}" class="table-img-thumb" style="width:42px; height:42px; object-fit:contain; border-radius:6px; background:#FFF;" onerror="this.src='https://via.placeholder.com/60'" />
             <div style="flex:1; min-width:0;">
-              <strong style="font-size:0.84rem; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prod.name}</strong>
+              <strong style="font-size:0.84rem; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${prod.name}">${prod.name}</strong>
               <div style="font-size:0.75rem; color:var(--warm-orange); font-weight:800;">₹${Number(prod.price).toLocaleString('en-IN')}</div>
             </div>
             <div style="display:flex; gap:0.2rem;">

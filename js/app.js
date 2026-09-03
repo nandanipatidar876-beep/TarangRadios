@@ -400,44 +400,79 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderSubcategoryPills() {
     if (!modalSubcategoryPills) return;
 
-    let subcategories = [];
+    let pillsList = [];
     let products = [];
 
     if (state.selectedCategoryForModal) {
-      subcategories = state.selectedCategoryForModal.subcategories || [];
-      products = window.TARANG_DATA.products.filter(p => p.categoryId === state.selectedCategoryForModal.id);
-    } else if (state.selectedBrandForModal) {
-      const brandCats = window.TARANG_DATA.brandCategories.filter(c => c.brandId === state.selectedBrandForModal.id);
-      brandCats.forEach(c => {
-        if (c.subcategories) subcategories.push(...c.subcategories);
+      const cat = state.selectedCategoryForModal;
+      products = window.TARANG_DATA.products.filter(p => p.categoryId === cat.id);
+      const subcategories = cat.subcategories || [];
+      
+      pillsList.push({
+        label: 'All Subcategories',
+        id: null,
+        count: products.length
       });
-      subcategories = Array.from(new Set(subcategories));
-      products = window.TARANG_DATA.products.filter(p => p.brandId === state.selectedBrandForModal.id || (p.brand && p.brand.toLowerCase() === state.selectedBrandForModal.name.toLowerCase()));
+
+      subcategories.forEach(sub => {
+        const count = products.filter(p => p.subcategory === sub).length;
+        pillsList.push({
+          label: sub,
+          id: sub,
+          count: count
+        });
+      });
+    } else if (state.selectedBrandForModal) {
+      const brand = state.selectedBrandForModal;
+      products = window.TARANG_DATA.products.filter(p => 
+        p.brandId === brand.id || (p.brand && p.brand.toLowerCase() === brand.name.toLowerCase())
+      );
+
+      pillsList.push({
+        label: `All ${brand.name} Products`,
+        id: null,
+        count: products.length
+      });
+
+      // Collect Brand Categories
+      const brandCats = window.TARANG_DATA.brandCategories.filter(c => c.brandId === brand.id);
+      if (brandCats.length > 0) {
+        brandCats.forEach(c => {
+          const count = products.filter(p => p.categoryId === c.id || (p.category_title && p.category_title.toLowerCase() === c.title.toLowerCase())).length;
+          pillsList.push({
+            label: c.title,
+            id: `cat:${c.id}`,
+            count: count
+          });
+        });
+      } else {
+        // Collect distinct subcategories if no brand categories
+        const distinctSubs = Array.from(new Set(products.map(p => p.subcategory).filter(Boolean)));
+        distinctSubs.forEach(sub => {
+          const count = products.filter(p => p.subcategory === sub).length;
+          pillsList.push({
+            label: sub,
+            id: sub,
+            count: count
+          });
+        });
+      }
     }
 
-    const totalCount = products.length;
-    let html = `
-      <button class="sub-pill ${!state.activeSubcategoryFilter ? 'active' : ''}" onclick="window.setSubcategoryFilter(null)">
-        <span>All Subcategories</span>
-        <span class="sub-pill-count">${totalCount}</span>
-      </button>
-    `;
-
-    subcategories.forEach(sub => {
-      const count = products.filter(p => p.subcategory === sub).length;
-      html += `
-        <button class="sub-pill ${state.activeSubcategoryFilter === sub ? 'active' : ''}" onclick="window.setSubcategoryFilter('${sub}')">
-          <span>${sub}</span>
-          <span class="sub-pill-count">${count}</span>
+    modalSubcategoryPills.innerHTML = pillsList.map(pill => {
+      const isActive = state.activeSubcategoryFilter === pill.id;
+      const safeId = pill.id ? `'${pill.id.replace(/'/g, "\\'")}'` : 'null';
+      return `
+        <button class="sub-pill ${isActive ? 'active' : ''}" onclick="window.setSubcategoryFilter(${safeId})">
+          <span>${pill.label}</span>
+          <span class="sub-pill-count">${pill.count}</span>
         </button>
       `;
-    });
-
-    modalSubcategoryPills.innerHTML = html;
+    }).join('');
   }
 
-  window.setSubcategoryFilter = (sub) => {
-    state.activeSubcategoryFilter = sub;
+  window.setSubcategoryFilter = (filterKey) => {
+    state.activeSubcategoryFilter = filterKey;
     renderSubcategoryPills();
     renderModalProducts();
   };
@@ -446,45 +481,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!modalProductsGrid) return;
 
     let products = [];
-    let subcategoriesList = [];
+    let isBrandView = false;
+    let brandCats = [];
 
     if (state.selectedCategoryForModal) {
       const cat = state.selectedCategoryForModal;
       products = window.TARANG_DATA.products.filter(p => p.categoryId === cat.id);
-      subcategoriesList = cat.subcategories || [];
     } else if (state.selectedBrandForModal) {
+      isBrandView = true;
       const brand = state.selectedBrandForModal;
-      products = window.TARANG_DATA.products.filter(p => p.brandId === brand.id || (p.brand && p.brand.toLowerCase() === brand.name.toLowerCase()));
-      
-      const brandCats = window.TARANG_DATA.brandCategories.filter(c => c.brandId === brand.id);
-      brandCats.forEach(c => {
-        if (c.subcategories) subcategoriesList.push(...c.subcategories);
-      });
-      subcategoriesList = Array.from(new Set(subcategoriesList));
+      products = window.TARANG_DATA.products.filter(p => 
+        p.brandId === brand.id || (p.brand && p.brand.toLowerCase() === brand.name.toLowerCase())
+      );
+      brandCats = window.TARANG_DATA.brandCategories.filter(c => c.brandId === brand.id);
     }
 
     if (products.length === 0) {
       modalProductsGrid.innerHTML = `
         <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted); font-weight: 600;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📦</div>
-          No products listed under this category yet.
+          <div style="font-size: 2.8rem; margin-bottom: 0.5rem;">📦</div>
+          <h4>No products listed here yet</h4>
+          <p>Check back soon or explore other categories.</p>
         </div>
       `;
       return;
     }
 
-    // Filter by specific subcategory pill if selected
+    // Filter active selection
     if (state.activeSubcategoryFilter) {
-      const filtered = products.filter(p => p.subcategory === state.activeSubcategoryFilter);
+      let filtered = products;
+      const filter = state.activeSubcategoryFilter;
+
+      if (filter.startsWith('cat:')) {
+        const targetCatId = filter.replace('cat:', '');
+        const targetCat = brandCats.find(c => c.id === targetCatId);
+        filtered = products.filter(p => p.categoryId === targetCatId || (targetCat && p.category_title && p.category_title.toLowerCase() === targetCat.title.toLowerCase()));
+      } else {
+        filtered = products.filter(p => p.subcategory === filter);
+      }
+
       if (filtered.length === 0) {
-        modalProductsGrid.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--text-muted); font-weight: 600;">No items found in "${state.activeSubcategoryFilter}".</div>`;
+        modalProductsGrid.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--text-muted); font-weight: 600;">No items found under this filter.</div>`;
         return;
       }
+
+      const activeLabel = filter.startsWith('cat:') 
+        ? (brandCats.find(c => c.id === filter.replace('cat:', ''))?.title || 'Selected Category')
+        : filter;
 
       modalProductsGrid.innerHTML = `
         <div class="subcat-group">
           <div class="subcat-group-header">
-            <h4 class="subcat-group-title">${state.activeSubcategoryFilter}</h4>
+            <h4 class="subcat-group-title">${activeLabel}</h4>
+            <span class="badge-stock in-stock" style="font-size: 0.8rem; padding: 3px 10px;">${filtered.length} Items</span>
           </div>
           <div class="subcat-products-grid">
             ${filtered.map(p => renderSingleProductCard(p)).join('')}
@@ -494,40 +543,84 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Group products by their Subcategories (Structure: Category -> Subcategory -> Products)
+    // Default "All Products" view
     let html = '';
-    const renderedSubcats = new Set();
 
-    subcategoriesList.forEach(subName => {
-      const subProds = products.filter(p => p.subcategory === subName);
-      if (subProds.length > 0) {
-        renderedSubcats.add(subName);
+    if (isBrandView && brandCats.length > 0) {
+      // Group by Brand Categories
+      const renderedCatIds = new Set();
+
+      brandCats.forEach(cat => {
+        const catProds = products.filter(p => p.categoryId === cat.id || (p.category_title && p.category_title.toLowerCase() === cat.title.toLowerCase()));
+        if (catProds.length > 0) {
+          renderedCatIds.add(cat.id);
+          html += `
+            <div class="subcat-group">
+              <div class="subcat-group-header">
+                <h4 class="subcat-group-title">${cat.title}</h4>
+                <span class="badge-stock in-stock" style="font-size: 0.78rem; padding: 2px 8px;">${catProds.length} ${catProds.length === 1 ? 'Item' : 'Items'}</span>
+              </div>
+              <div class="subcat-products-grid">
+                ${catProds.map(p => renderSingleProductCard(p)).join('')}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      // Remaining products
+      const remainingProds = products.filter(p => !renderedCatIds.has(p.categoryId));
+      if (remainingProds.length > 0) {
         html += `
           <div class="subcat-group">
             <div class="subcat-group-header">
-              <h4 class="subcat-group-title">${subName}</h4>
+              <h4 class="subcat-group-title">Additional Products</h4>
+              <span class="badge-stock in-stock" style="font-size: 0.78rem; padding: 2px 8px;">${remainingProds.length} Items</span>
             </div>
             <div class="subcat-products-grid">
-              ${subProds.map(p => renderSingleProductCard(p)).join('')}
+              ${remainingProds.map(p => renderSingleProductCard(p)).join('')}
             </div>
           </div>
         `;
       }
-    });
+    } else {
+      // Normal Category: Group by Subcategories
+      const cat = state.selectedCategoryForModal;
+      const subcategoriesList = (cat && cat.subcategories) ? cat.subcategories : [];
+      const renderedSubcats = new Set();
 
-    // Uncategorized products directly under category
-    const remainingProds = products.filter(p => !p.subcategory || !renderedSubcats.has(p.subcategory));
-    if (remainingProds.length > 0) {
-      html += `
-        <div class="subcat-group">
-          <div class="subcat-group-header">
-            <h4 class="subcat-group-title">${subcategoriesList.length > 0 ? 'General Products' : 'Products'}</h4>
+      subcategoriesList.forEach(subName => {
+        const subProds = products.filter(p => p.subcategory === subName);
+        if (subProds.length > 0) {
+          renderedSubcats.add(subName);
+          html += `
+            <div class="subcat-group">
+              <div class="subcat-group-header">
+                <h4 class="subcat-group-title">${subName}</h4>
+                <span class="badge-stock in-stock" style="font-size: 0.78rem; padding: 2px 8px;">${subProds.length} ${subProds.length === 1 ? 'Item' : 'Items'}</span>
+              </div>
+              <div class="subcat-products-grid">
+                ${subProds.map(p => renderSingleProductCard(p)).join('')}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      const remainingProds = products.filter(p => !p.subcategory || !renderedSubcats.has(p.subcategory));
+      if (remainingProds.length > 0) {
+        html += `
+          <div class="subcat-group">
+            <div class="subcat-group-header">
+              <h4 class="subcat-group-title">${subcategoriesList.length > 0 ? 'General Products' : 'Products'}</h4>
+              <span class="badge-stock in-stock" style="font-size: 0.78rem; padding: 2px 8px;">${remainingProds.length} Items</span>
+            </div>
+            <div class="subcat-products-grid">
+              ${remainingProds.map(p => renderSingleProductCard(p)).join('')}
+            </div>
           </div>
-          <div class="subcat-products-grid">
-            ${remainingProds.map(p => renderSingleProductCard(p)).join('')}
-          </div>
-        </div>
-      `;
+        `;
+      }
     }
 
     modalProductsGrid.innerHTML = html;
@@ -548,7 +641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </button>
         </div>
         <div class="subcat-card-content">
-          <h4 class="subcat-product-name">${p.name}</h4>
+          <h4 class="subcat-product-name" title="${p.name}">${p.name}</h4>
           ${priceContent}
         </div>
       </div>
@@ -571,11 +664,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- THE BRANDS WE DEAL WITH SECTION ---
   function renderBrands() {
     if (!brandsGrid || !window.TARANG_DATA.brands) return;
-    brandsGrid.innerHTML = window.TARANG_DATA.brands.map(b => `
-      <div class="brand-card" onclick="window.filterByBrand('${b.id}', '${(b.name || '').replace(/'/g, "\\'")}')">
-        <div class="brand-logo-text">${b.name}</div>
-      </div>
-    `).join('');
+    brandsGrid.innerHTML = window.TARANG_DATA.brands.map(b => {
+      const bProdsCount = window.TARANG_DATA.products ? window.TARANG_DATA.products.filter(p => p.brandId === b.id || (p.brand && p.brand.toLowerCase() === b.name.toLowerCase())).length : 0;
+      return `
+        <div class="brand-card" onclick="window.filterByBrand('${b.id}', '${(b.name || '').replace(/'/g, "\\'")}')">
+          <div class="brand-logo-text">${b.name}</div>
+          <div style="font-size: 0.74rem; font-weight: 700; color: #B84A14; margin-top: 0.4rem; opacity: 0.9;">
+            ${bProdsCount > 0 ? `${bProdsCount} Verified Products` : 'Official Partner'}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   window.filterByBrand = (brandId, brandName) => {
@@ -586,8 +685,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.selectedCategoryForModal = null;
     state.activeSubcategoryFilter = null;
 
-    if (modalCategoryTitle) modalCategoryTitle.textContent = `${brand.name} Products`;
-    if (modalCategorySubtitle) modalCategorySubtitle.textContent = `Official catalog & spare parts from ${brand.name}`;
+    const brandProds = window.TARANG_DATA.products ? window.TARANG_DATA.products.filter(p => p.brandId === brand.id || (p.brand && p.brand.toLowerCase() === brand.name.toLowerCase())) : [];
+    const brandCats = window.TARANG_DATA.brandCategories ? window.TARANG_DATA.brandCategories.filter(c => c.brandId === brand.id) : [];
+
+    if (modalCategoryTitle) modalCategoryTitle.textContent = `${brand.name} Official Catalog`;
+    if (modalCategorySubtitle) {
+      modalCategorySubtitle.innerHTML = `
+        <span class="modal-sub-tagline">Genuine components, soldering equipment & tools from ${brand.name}</span>
+        <div class="modal-meta-chips">
+          <span class="meta-chip">🏷️ Official Brand</span>
+          <span class="meta-chip">📁 ${brandCats.length} Categories</span>
+          <span class="meta-chip">⚡ ${brandProds.length} Verified Products</span>
+        </div>
+      `;
+    }
 
     renderSubcategoryPills();
     renderModalProducts();
