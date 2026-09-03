@@ -41,6 +41,7 @@ cloudinary_upload_cache.json
 cloudinary_noel_cache.json
 cloudinary_dvm_cache.json
 cloudinary_alcop_cache.json
+cloudinary_kushiro_cache.json
 
 # IDE and OS files
 .vscode/
