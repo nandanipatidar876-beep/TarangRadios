@@ -177,8 +177,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Tarang Radios - Database Migration & Production Catalog Sync Runner")
-    parser.add_argument("command", nargs="?", default="up", choices=["up", "status", "init-admin", "sync-prod"], help="Command to run (default: up)")
+    parser.add_argument("command", nargs="?", default="up", choices=["up", "status", "init-admin", "sync-prod", "sync-noel"], help="Command to run (default: up)")
     parser.add_argument("--sync-prod", action="store_true", help="Sync local scraped catalog & images directly to production")
+    parser.add_argument("--sync-noel", action="store_true", help="Scrape Noel India (noelindia.com) and sync under Brand: Noel")
     parser.add_argument("--catalog", default=r"D:\scrapping\products_catalog.json", help="Path to products_catalog.json")
     parser.add_argument("--images-dir", default=r"D:\scrapping\product_images", help="Path to product images root directory")
     parser.add_argument("--db-url", help="Override database connection URL (PostgreSQL / SQLite)")
@@ -188,7 +189,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.sync_prod or args.command == "sync-prod":
+    if args.sync_noel or args.command == "sync-noel":
+        from scrap_noel import sync_noel_catalog
+        sync_noel_catalog(
+            db_url=args.db_url,
+            workers=args.workers,
+            dry_run=args.dry_run,
+            skip_images=args.skip_images
+        )
+    elif args.sync_prod or args.command == "sync-prod":
         from sync_catalog import sync_production
         sync_production(
             catalog_path=args.catalog,
@@ -209,4 +218,5 @@ if __name__ == "__main__":
             os.environ["DATABASE_URL"] = args.db_url
         with get_db() as db:
             ensure_default_admin(db)
+
 

@@ -38,6 +38,7 @@ tarang.db
 uploads/*
 !uploads/.gitkeep
 cloudinary_upload_cache.json
+cloudinary_noel_cache.json
 
 # IDE and OS files
 .vscode/
