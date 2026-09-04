@@ -59,6 +59,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 90px; /* Offset for sticky navbar (2 rows) */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-main);
   color: var(--text-main);

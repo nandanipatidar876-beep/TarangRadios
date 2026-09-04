@@ -338,6 +338,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('scroll', updateActiveNavLink, { passive: true });
   updateActiveNavLink();
 
+  // --- SMOOTH SCROLL WITH NAVBAR OFFSET ---
+  // Intercepts all anchor links and scrolls with proper offset for sticky navbar
+  function smoothScrollTo(targetId) {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const navbar = document.getElementById('navbar');
+    const navbarHeight = navbar ? navbar.offsetHeight : 0;
+    const targetTop = target.getBoundingClientRect().top + window.scrollY - navbarHeight - 8;
+    window.scrollTo({ top: targetTop, behavior: 'smooth' });
+  }
+
+  // Attach smooth scroll to all nav links (desktop + mobile)
+  document.querySelectorAll('.nav-link[href^="#"], .mobile-nav-link[href^="#"]').forEach(link => {
+    link.addEventListener('click', function(e) {
+      const href = this.getAttribute('href');
+      if (href && href.startsWith('#') && href.length > 1) {
+        e.preventDefault();
+        const targetId = href.slice(1);
+        smoothScrollTo(targetId);
+        // Update active state immediately
+        document.querySelectorAll('.nav-link, .mobile-nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll(`[data-nav="${this.dataset.nav}"]`).forEach(l => l.classList.add('active'));
+      }
+    });
+  });
+
+  // Also expose for external use
+  window.smoothScrollTo = smoothScrollTo;
+
 
   // --- WISHLIST & CART DRAWER HANDLERS ---
   function updateWishlistBadge() {
