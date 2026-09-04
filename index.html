@@ -23,88 +23,152 @@
        1. STICKY NAVIGATION BAR (AT THE VERY TOP OF THE WEBSITE)
        ========================================================================== -->
   <nav class="navbar" id="navbar">
-    <a href="#hero" class="nav-brand">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>
-      <span class="nav-brand-text">TARANG <span>RADIOS</span></span>
-    </a>
 
-    <!-- Navbar Live Search Bar -->
-    <div class="search-container">
-      <div class="search-input-wrapper">
-        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" id="searchInput" class="search-input" placeholder="Search radios, brands (Philips, Sony, Murphy)..." autocomplete="off" />
+    <!-- ── Row 1: Brand · Search · Actions ── -->
+    <div class="navbar-top">
+      <!-- Logo / Brand -->
+      <a href="#hero" class="nav-brand" aria-label="Tarang Radios Home">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>
+        <span class="nav-brand-text">TARANG <span>RADIOS</span></span>
+      </a>
+
+      <!-- Navbar Live Search Bar -->
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search products, brands..." autocomplete="off" />
+        </div>
+        <div id="searchResultsDropdown" class="search-results-dropdown"></div>
       </div>
-      <div id="searchResultsDropdown" class="search-results-dropdown"></div>
-    </div>
 
-    <!-- Nav Actions -->
-    <div class="nav-actions">
-      <!-- Wishlist Trigger Button with Heart Logo -->
-      <button class="icon-btn" id="wishlistToggleBtn" title="View Wishlist" aria-label="Wishlist">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="var(--warm-orange)" stroke="var(--warm-orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        <span class="badge-count" id="wishlistBadge">0</span>
-      </button>
-
-      <!-- Cart Trigger Button with Shopping Cart Logo -->
-      <button class="icon-btn" id="cartToggleBtn" title="View Shopping Cart" aria-label="Shopping Cart">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="8" cy="21" r="1"/>
-          <circle cx="19" cy="21" r="1"/>
-          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-        </svg>
-        <span class="badge-count cart-badge-count" id="cartBadge">0</span>
-      </button>
-
-      <!-- Profile Menu Trigger Button with User Logo -->
-      <div class="profile-dropdown-wrapper">
-        <button class="icon-btn" id="profileMenuBtn" title="Open Profile Menu" aria-label="Profile Menu">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <!-- Nav Actions: Wishlist, Cart, Profile, Hamburger -->
+      <div class="nav-actions">
+        <!-- Wishlist -->
+        <button class="icon-btn" id="wishlistToggleBtn" title="View Wishlist" aria-label="Wishlist">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="var(--warm-orange)" stroke="var(--warm-orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          <span class="badge-count" id="wishlistBadge">0</span>
         </button>
 
-        <!-- Profile Menu Dropdown Panel -->
-        <div class="profile-menu-panel" id="profileMenuPanel">
-          <div class="profile-header">
-            <div class="profile-avatar">TR</div>
-            <div>
-              <h4 style="color: var(--warm-orange); font-size: 1rem; font-weight: 800;">Guest Collector</h4>
-              <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Tarang Club Member</p>
-            </div>
-          </div>
+        <!-- Cart -->
+        <button class="icon-btn" id="cartToggleBtn" title="View Shopping Cart" aria-label="Shopping Cart">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+          </svg>
+          <span class="badge-count cart-badge-count" id="cartBadge">0</span>
+        </button>
 
-          <!-- Price Access Protection Card -->
-          <div class="price-access-card" id="priceAccessCard">
-            <div class="price-access-header">
-              <div class="price-status-badge" id="priceStatusBadge">
-                <span id="priceStatusIcon">🔒</span>
-                <span id="priceStatusText">Prices Protected</span>
+        <!-- Profile Menu -->
+        <div class="profile-dropdown-wrapper">
+          <button class="icon-btn" id="profileMenuBtn" title="Open Profile Menu" aria-label="Profile Menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
+
+          <!-- Profile Dropdown Panel -->
+          <div class="profile-menu-panel" id="profileMenuPanel">
+            <div class="profile-header">
+              <div class="profile-avatar">TR</div>
+              <div>
+                <h4 style="color: var(--warm-orange); font-size: 1rem; font-weight: 800;">Guest Collector</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Tarang Club Member</p>
               </div>
             </div>
-            <p class="price-access-sub" id="priceAccessSub">Enter access code to reveal wholesale & retail prices.</p>
-            <button type="button" class="price-access-btn" id="priceAccessActionBtn" onclick="window.handlePriceAccessAction()">
-              <svg id="priceActionSvgLock" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-              <svg id="priceActionSvgUnlock" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <span id="priceActionBtnText">Unlock Prices</span>
-            </button>
-          </div>
 
-          <div class="profile-links">
-            <a href="#cart" class="profile-link-item" onclick="document.getElementById('cartToggleBtn').click();">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Shopping Cart (<span id="profileCartCount">0</span>)
-            </a>
-            <a href="#wishlist" class="profile-link-item" onclick="document.getElementById('wishlistToggleBtn').click();">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> Saved Wishlist Items
-            </a>
-            <a href="#contactSection" class="profile-link-item">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Request Custom Restoration
-            </a>
-            <a href="#brandsSection" class="profile-link-item">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Brand Partners
-            </a>
+            <!-- Price Access Protection Card -->
+            <div class="price-access-card" id="priceAccessCard">
+              <div class="price-access-header">
+                <div class="price-status-badge" id="priceStatusBadge">
+                  <span id="priceStatusIcon">🔒</span>
+                  <span id="priceStatusText">Prices Protected</span>
+                </div>
+              </div>
+              <p class="price-access-sub" id="priceAccessSub">Enter access code to reveal wholesale &amp; retail prices.</p>
+              <button type="button" class="price-access-btn" id="priceAccessActionBtn" onclick="window.handlePriceAccessAction()">
+                <svg id="priceActionSvgLock" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                <svg id="priceActionSvgUnlock" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span id="priceActionBtnText">Unlock Prices</span>
+              </button>
+            </div>
+
+            <div class="profile-links">
+              <a href="#cart" class="profile-link-item" onclick="document.getElementById('cartToggleBtn').click();">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Shopping Cart (<span id="profileCartCount">0</span>)
+              </a>
+              <a href="#wishlist" class="profile-link-item" onclick="document.getElementById('wishlistToggleBtn').click();">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> Saved Wishlist
+              </a>
+              <a href="#contactSection" class="profile-link-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Contact &amp; Enquiry
+              </a>
+              <a href="#brandsSection" class="profile-link-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Brand Partners
+              </a>
+            </div>
           </div>
         </div>
+
+        <!-- Mobile Hamburger -->
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle mobile menu" aria-expanded="false">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
       </div>
-    </div>
+    </div><!-- /.navbar-top -->
+
+    <!-- ── Row 2: Navigation Links ── -->
+    <div class="navbar-nav-row">
+      <ul class="nav-links" id="navLinks">
+        <li>
+          <a href="#hero" class="nav-link active" data-nav="home">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Home
+          </a>
+        </li>
+        <li>
+          <a href="#aboutSection" class="nav-link" data-nav="about">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            About Us
+          </a>
+        </li>
+        <li>
+          <a href="#categorySection" class="nav-link" data-nav="categories">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Categories
+          </a>
+        </li>
+        <li>
+          <a href="#brandsSection" class="nav-link" data-nav="brands">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+            Brands
+          </a>
+        </li>
+        <li>
+          <a href="#contactSection" class="nav-link" data-nav="contact">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.73 16a2 2 0 0 1 .27.92Z"/></svg>
+            Contact Us
+          </a>
+        </li>
+      </ul>
+    </div><!-- /.navbar-nav-row -->
+
   </nav>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+  <div class="mobile-nav-drawer" id="mobileNavDrawer">
+    <div class="mobile-nav-header">
+      <span class="mobile-nav-brand">📻 TARANG RADIOS</span>
+      <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">&times;</button>
+    </div>
+    <ul class="mobile-nav-links">
+      <li><a href="#hero" class="mobile-nav-link" data-nav="home">🏠 Home</a></li>
+      <li><a href="#aboutSection" class="mobile-nav-link" data-nav="about">ℹ️ About Us</a></li>
+      <li><a href="#categorySection" class="mobile-nav-link" data-nav="categories">📦 Categories</a></li>
+      <li><a href="#brandsSection" class="mobile-nav-link" data-nav="brands">🏷️ Brands</a></li>
+      <li><a href="#contactSection" class="mobile-nav-link" data-nav="contact">📞 Contact Us</a></li>
+    </ul>
+  </div>
 
   <!-- ==========================================================================
        2. FRONT COVER PAGE (HERO SECTION - LUXURY ANIMATED TRANSMISSION LOGO)

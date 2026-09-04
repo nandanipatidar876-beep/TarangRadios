@@ -286,6 +286,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // --- HAMBURGER / MOBILE DRAWER TOGGLE ---
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const mobileNavDrawer = document.getElementById('mobileNavDrawer');
+  const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+  const mobileNavClose = document.getElementById('mobileNavClose');
+
+  function openMobileNav() {
+    mobileNavDrawer && mobileNavDrawer.classList.add('open');
+    mobileNavOverlay && mobileNavOverlay.classList.add('open');
+    if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeMobileNav() {
+    mobileNavDrawer && mobileNavDrawer.classList.remove('open');
+    mobileNavOverlay && mobileNavOverlay.classList.remove('open');
+    if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  if (hamburgerBtn) hamburgerBtn.addEventListener('click', openMobileNav);
+  if (mobileNavClose) mobileNavClose.addEventListener('click', closeMobileNav);
+  if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileNav);
+
+  // Close mobile drawer on link click
+  document.querySelectorAll('.mobile-nav-link').forEach(link => {
+    link.addEventListener('click', closeMobileNav);
+  });
+
+  // --- ACTIVE NAV LINK SCROLL SPY ---
+  const navSections = [
+    { id: 'hero', nav: 'home' },
+    { id: 'aboutSection', nav: 'about' },
+    { id: 'categorySection', nav: 'categories' },
+    { id: 'brandsSection', nav: 'brands' },
+    { id: 'contactSection', nav: 'contact' },
+  ];
+
+  function updateActiveNavLink() {
+    const scrollY = window.scrollY + 120;
+    let current = 'home';
+    navSections.forEach(sec => {
+      const el = document.getElementById(sec.id);
+      if (el && el.offsetTop <= scrollY) current = sec.nav;
+    });
+    document.querySelectorAll('.nav-link, .mobile-nav-link').forEach(link => {
+      link.classList.toggle('active', link.dataset.nav === current);
+    });
+  }
+
+  window.addEventListener('scroll', updateActiveNavLink, { passive: true });
+  updateActiveNavLink();
+
+
   // --- WISHLIST & CART DRAWER HANDLERS ---
   function updateWishlistBadge() {
     if (wishlistBadge) {
