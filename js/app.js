@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let state = {
     priceHidden: localStorage.getItem('tarang_price_hidden') === 'true',
     wishlist: JSON.parse(localStorage.getItem('tarang_wishlist') || '[]'),
+    cart: JSON.parse(localStorage.getItem('tarang_cart') || '[]'),
     activeSubcategoryFilter: null,
     searchQuery: '',
     categoryFilterQuery: '',
@@ -29,12 +30,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   const priceToggleStatusText = document.getElementById('priceToggleStatusText');
   const profileMenuBtn = document.getElementById('profileMenuBtn');
   const profileMenuPanel = document.getElementById('profileMenuPanel');
+  const profileCartCount = document.getElementById('profileCartCount');
+  
   const wishlistToggleBtn = document.getElementById('wishlistToggleBtn');
   const wishlistBadge = document.getElementById('wishlistBadge');
   const wishlistDrawer = document.getElementById('wishlistDrawer');
   const drawerOverlay = document.getElementById('drawerOverlay');
   const closeWishlistBtn = document.getElementById('closeWishlistBtn');
   const wishlistItemsContainer = document.getElementById('wishlistItemsContainer');
+
+  const cartToggleBtn = document.getElementById('cartToggleBtn');
+  const cartBadge = document.getElementById('cartBadge');
+  const cartDrawer = document.getElementById('cartDrawer');
+  const closeCartBtn = document.getElementById('closeCartBtn');
+  const cartItemsContainer = document.getElementById('cartItemsContainer');
+  const cartTotalItems = document.getElementById('cartTotalItems');
+  const cartGrandTotal = document.getElementById('cartGrandTotal');
+  const cartSubtotalRow = document.getElementById('cartSubtotalRow');
+  const cartToast = document.getElementById('cartToast');
+  const cartToastTitle = document.getElementById('cartToastTitle');
+  const cartToastSub = document.getElementById('cartToastSub');
   
   const searchInput = document.getElementById('searchInput');
   const searchResultsDropdown = document.getElementById('searchResultsDropdown');
@@ -60,6 +75,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const liveData = await res.json();
         if (liveData && liveData.categories && liveData.products) {
           window.TARANG_DATA = liveData;
+          updateCartBadge();
+          renderCart();
         }
       }
     } catch (err) {
@@ -76,9 +93,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Price Display Helper (Respects Price Hide Switch)
   function formatPriceHtml(priceNum) {
     if (state.priceHidden) {
-      return '';
+      return '<div class="subcat-product-price" style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700;">Price Hidden</div>';
     }
     const val = Number(priceNum) || 0;
+    if (val <= 0) {
+      return '<div class="subcat-product-price" style="font-size: 0.8rem; color: #B84A14; font-weight: 800;">Price on Request</div>';
+    }
     return `<div class="subcat-product-price">₹${val.toLocaleString('en-IN')}</div>`;
   }
 
@@ -92,6 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem('tarang_price_hidden', state.priceHidden);
       updatePriceToggleUI();
       renderWishlist();
+      renderCart();
       if (state.selectedCategoryForModal || state.selectedBrandForModal) {
         renderModalProducts();
       }
@@ -118,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // --- WISHLIST DRAWER ---
+  // --- WISHLIST & CART DRAWER HANDLERS ---
   function updateWishlistBadge() {
     if (wishlistBadge) {
       wishlistBadge.textContent = state.wishlist.length;
@@ -142,20 +163,334 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (wishlistToggleBtn) {
     wishlistToggleBtn.addEventListener('click', () => {
+      if (cartDrawer) cartDrawer.classList.remove('open');
       wishlistDrawer.classList.add('open');
       drawerOverlay.classList.add('open');
       renderWishlist();
     });
   }
 
+  if (cartToggleBtn) {
+    cartToggleBtn.addEventListener('click', () => {
+      if (wishlistDrawer) wishlistDrawer.classList.remove('open');
+      if (cartDrawer) cartDrawer.classList.add('open');
+      if (drawerOverlay) drawerOverlay.classList.add('open');
+      renderCart();
+    });
+  }
+
   if (closeWishlistBtn) closeWishlistBtn.addEventListener('click', closeDrawers);
+  if (closeCartBtn) closeCartBtn.addEventListener('click', closeDrawers);
   if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawers);
 
   function closeDrawers() {
     if (wishlistDrawer) wishlistDrawer.classList.remove('open');
+    if (cartDrawer) cartDrawer.classList.remove('open');
     if (drawerOverlay) drawerOverlay.classList.remove('open');
     if (subcategoryModal) subcategoryModal.classList.remove('open');
   }
+
+  // --- SHOPPING CART STATE & LOGIC ---
+  function updateCartBadge() {
+    const totalItems = state.cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+    if (cartBadge) {
+      cartBadge.textContent = totalItems;
+    }
+    if (profileCartCount) {
+      profileCartCount.textContent = totalItems;
+    }
+  }
+
+  let cartToastTimer = null;
+  function showCartToast(title, sub) {
+    if (!cartToast) return;
+    if (cartToastTitle) cartToastTitle.textContent = title || 'Item added to cart';
+    if (cartToastSub) cartToastSub.textContent = sub || 'Click View Cart to inspect your order';
+    cartToast.classList.add('show');
+    if (cartToastTimer) clearTimeout(cartToastTimer);
+    cartToastTimer = setTimeout(() => {
+      cartToast.classList.remove('show');
+    }, 3200);
+  }
+
+  function addToCart(productId, qty = 1, showToast = true) {
+    const existingIndex = state.cart.findIndex(item => item.id === productId);
+    let newQty = qty;
+    if (existingIndex > -1) {
+      state.cart[existingIndex].qty += qty;
+      newQty = state.cart[existingIndex].qty;
+    } else {
+      state.cart.push({ id: productId, qty: qty });
+    }
+    localStorage.setItem('tarang_cart', JSON.stringify(state.cart));
+    updateCartBadge();
+    renderCart();
+
+    const p = window.TARANG_DATA.products ? window.TARANG_DATA.products.find(item => item.id === productId) : null;
+    const name = p ? p.name : 'Product';
+
+    if (showToast) {
+      showCartToast(`Added to Cart: ${name}`, `${newQty} unit${newQty > 1 ? 's' : ''} in cart • Tap to view`);
+    }
+
+    if (cartBadge) {
+      cartBadge.classList.remove('cart-badge-pulse');
+      void cartBadge.offsetWidth;
+      cartBadge.classList.add('cart-badge-pulse');
+    }
+  }
+
+  function updateCartQty(productId, delta) {
+    const idx = state.cart.findIndex(item => item.id === productId);
+    if (idx > -1) {
+      state.cart[idx].qty += delta;
+      if (state.cart[idx].qty <= 0) {
+        state.cart.splice(idx, 1);
+      }
+      localStorage.setItem('tarang_cart', JSON.stringify(state.cart));
+      updateCartBadge();
+      renderCart();
+      if (subcategoryModal && subcategoryModal.classList.contains('open')) {
+        renderModalProducts();
+      }
+    }
+  }
+
+  function removeFromCart(productId) {
+    const idx = state.cart.findIndex(item => item.id === productId);
+    if (idx > -1) {
+      state.cart.splice(idx, 1);
+      localStorage.setItem('tarang_cart', JSON.stringify(state.cart));
+      updateCartBadge();
+      renderCart();
+      if (subcategoryModal && subcategoryModal.classList.contains('open')) {
+        renderModalProducts();
+      }
+    }
+  }
+
+  function clearCart() {
+    if (state.cart.length === 0) return;
+    if (confirm('Are you sure you want to empty your shopping cart?')) {
+      state.cart = [];
+      localStorage.setItem('tarang_cart', JSON.stringify(state.cart));
+      updateCartBadge();
+      renderCart();
+      if (subcategoryModal && subcategoryModal.classList.contains('open')) {
+        renderModalProducts();
+      }
+    }
+  }
+
+  window.addToCart = addToCart;
+  window.updateCartItemQty = updateCartQty;
+  window.removeCartItem = removeFromCart;
+  window.clearCart = clearCart;
+
+  window.handleAddToCart = (event, id) => {
+    if (event) event.stopPropagation();
+    addToCart(id, 1, true);
+
+    const btn = document.getElementById(`cartBtn_${id}`);
+    if (btn) {
+      btn.classList.add('added-success');
+      btn.innerHTML = `<span>✓ Added</span>`;
+      setTimeout(() => {
+        btn.classList.remove('added-success');
+        const entry = state.cart.find(item => item.id === id);
+        const qty = entry ? entry.qty : 0;
+        btn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="21" r="1"/>
+            <circle cx="19" cy="21" r="1"/>
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+          </svg>
+          <span>${qty > 0 ? `In Cart (${qty})` : 'Add to Cart'}</span>
+        `;
+        if (qty > 0) {
+          btn.classList.add('in-cart');
+        } else {
+          btn.classList.remove('in-cart');
+        }
+      }, 1200);
+    }
+  };
+
+  function renderCart() {
+    if (!cartItemsContainer) return;
+
+    if (state.cart.length === 0) {
+      cartItemsContainer.innerHTML = `
+        <div class="cart-empty-state">
+          <div class="cart-empty-icon">🛒</div>
+          <h4 class="cart-empty-title">Your Cart is Empty</h4>
+          <p class="cart-empty-desc">Explore our electronic components, relays, cables, and brand catalogs to add items.</p>
+          <button class="cart-shop-now-btn" onclick="document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); document.getElementById('categoriesGrid').scrollIntoView({behavior: 'smooth'});">
+            Browse Categories
+          </button>
+        </div>
+      `;
+      if (cartTotalItems) cartTotalItems.textContent = '0 Items';
+      if (cartGrandTotal) cartGrandTotal.textContent = '₹0';
+      const cartFooter = document.getElementById('cartFooter');
+      if (cartFooter) cartFooter.style.opacity = '0.6';
+      return;
+    }
+
+    const cartFooter = document.getElementById('cartFooter');
+    if (cartFooter) cartFooter.style.opacity = '1';
+
+    let totalItems = 0;
+    let grandTotal = 0;
+
+    const html = state.cart.map(entry => {
+      const p = window.TARANG_DATA.products ? window.TARANG_DATA.products.find(item => item.id === entry.id) : null;
+      if (!p) {
+        return `
+          <div class="cart-item-card">
+            <div class="cart-item-details">
+              <h5 class="cart-item-title">Product (${entry.id})</h5>
+              <div class="cart-item-bottom-row">
+                <div class="cart-qty-stepper">
+                  <button class="cart-qty-btn" onclick="window.updateCartItemQty('${entry.id}', -1)">−</button>
+                  <span class="cart-qty-val">${entry.qty}</span>
+                  <button class="cart-qty-btn" onclick="window.updateCartItemQty('${entry.id}', 1)">+</button>
+                </div>
+                <button class="cart-item-delete" onclick="window.removeCartItem('${entry.id}')" title="Remove item">&times;</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      const unitPrice = Number(p.price) || 0;
+      const lineTotal = unitPrice * entry.qty;
+      totalItems += entry.qty;
+      grandTotal += lineTotal;
+
+      return `
+        <div class="cart-item-card" id="cartItem_${p.id}">
+          <img src="${formatImageUrl(p.image)}" alt="${p.name}" class="cart-item-img" onerror="this.src='https://via.placeholder.com/60'" />
+          <div class="cart-item-details">
+            <h5 class="cart-item-title" title="${p.name}">${p.name}</h5>
+            <div class="cart-item-meta">
+              <span class="cart-item-subcat">${p.subcategory || p.brand || 'General'}</span>
+              ${!state.priceHidden ? `<span class="cart-item-price">₹${unitPrice.toLocaleString('en-IN')}</span>` : '<span class="cart-item-price" style="font-size: 0.75rem; color: var(--text-muted);">Price on Request</span>'}
+            </div>
+            <div class="cart-item-bottom-row">
+              <div class="cart-qty-stepper">
+                <button class="cart-qty-btn" onclick="window.updateCartItemQty('${p.id}', -1)" aria-label="Decrease quantity">−</button>
+                <span class="cart-qty-val">${entry.qty}</span>
+                <button class="cart-qty-btn" onclick="window.updateCartItemQty('${p.id}', 1)" aria-label="Increase quantity">+</button>
+              </div>
+              ${!state.priceHidden ? `<div class="cart-item-total">₹${lineTotal.toLocaleString('en-IN')}</div>` : ''}
+              <button class="cart-item-delete" onclick="window.removeCartItem('${p.id}')" title="Remove item" aria-label="Remove item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    cartItemsContainer.innerHTML = html;
+    if (cartTotalItems) cartTotalItems.textContent = `${totalItems} ${totalItems === 1 ? 'Item' : 'Items'}`;
+    if (cartGrandTotal) {
+      cartGrandTotal.textContent = !state.priceHidden ? `₹${grandTotal.toLocaleString('en-IN')}` : 'Price on Request';
+    }
+  }
+
+  // --- CHECKOUT VIA WHATSAPP (+91 9907473375) ---
+  window.checkoutViaWhatsApp = () => {
+    if (state.cart.length === 0) {
+      alert('Your cart is empty! Please add products before sending an order or inquiry.');
+      return;
+    }
+
+    let message = `*TARANG RADIOS - ORDER & INQUIRY*\n`;
+    message += `------------------------------------\n`;
+    message += `Hello Tarang Radios, I would like to inquire/order the following items from my cart:\n\n`;
+
+    let totalItems = 0;
+    let grandTotal = 0;
+
+    state.cart.forEach((entry, idx) => {
+      const p = window.TARANG_DATA.products ? window.TARANG_DATA.products.find(item => item.id === entry.id) : null;
+      const name = p ? p.name : entry.id;
+      const price = p ? Number(p.price) || 0 : 0;
+      const lineTotal = price * entry.qty;
+      totalItems += entry.qty;
+      grandTotal += lineTotal;
+
+      if (!state.priceHidden && price > 0) {
+        message += `${idx + 1}. *${name}*\n   Qty: ${entry.qty} × ₹${price.toLocaleString('en-IN')} = *₹${lineTotal.toLocaleString('en-IN')}*\n`;
+      } else {
+        message += `${idx + 1}. *${name}*\n   Qty: ${entry.qty} (Price on Request)\n`;
+      }
+    });
+
+    message += `------------------------------------\n`;
+    message += `*Total Items:* ${totalItems}\n`;
+    if (!state.priceHidden && grandTotal > 0) {
+      message += `*Estimated Grand Total:* ₹${grandTotal.toLocaleString('en-IN')}\n`;
+    }
+    message += `\nPlease confirm availability, delivery timelines, and dealer/bulk pricing.\nThank you!`;
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/919907473375?text=${encoded}`, '_blank');
+  };
+
+  // --- CHECKOUT VIA WEB INQUIRY FORM ---
+  window.checkoutViaInquiryForm = () => {
+    if (state.cart.length === 0) {
+      alert('Your cart is empty! Please add products before sending an inquiry.');
+      return;
+    }
+
+    let text = `Order / Inquiry Items from Cart:\n`;
+    let totalItems = 0;
+    let grandTotal = 0;
+
+    state.cart.forEach((entry, idx) => {
+      const p = window.TARANG_DATA.products ? window.TARANG_DATA.products.find(item => item.id === entry.id) : null;
+      const name = p ? p.name : entry.id;
+      const price = p ? Number(p.price) || 0 : 0;
+      const lineTotal = price * entry.qty;
+      totalItems += entry.qty;
+      grandTotal += lineTotal;
+
+      if (!state.priceHidden && price > 0) {
+        text += `${idx + 1}. ${name} — Qty: ${entry.qty} (₹${lineTotal.toLocaleString('en-IN')})\n`;
+      } else {
+        text += `${idx + 1}. ${name} — Qty: ${entry.qty}\n`;
+      }
+    });
+
+    text += `\nTotal Items: ${totalItems}`;
+    if (!state.priceHidden && grandTotal > 0) {
+      text += ` | Estimated Total: ₹${grandTotal.toLocaleString('en-IN')}`;
+    }
+    text += `\nPlease let me know availability and delivery details.`;
+
+    const inquiryMsg = document.getElementById('inquiryMsg');
+    if (inquiryMsg) {
+      inquiryMsg.value = text;
+    }
+
+    closeDrawers();
+    const contactSection = document.getElementById('contactSection');
+    if (contactSection) {
+      contactSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    const userName = document.getElementById('userName');
+    if (userName) {
+      setTimeout(() => userName.focus(), 600);
+    }
+  };
+
+  // Initial cart count rendering
+  updateCartBadge();
+  renderCart();
 
   function renderWishlist() {
     if (!wishlistItemsContainer) return;
@@ -344,14 +679,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // --- IMAGE ZOOM LIGHTBOX MODAL EVENT ---
-  window.openImageZoomModal = (imgUrl, caption) => {
+  let currentZoomProductId = null;
+
+  window.openImageZoomModal = (imgUrl, caption, productId = null) => {
+    currentZoomProductId = productId;
     const modal = document.getElementById('imageZoomModal');
     const displayImg = document.getElementById('zoomedImageDisplay');
     const displayCaption = document.getElementById('zoomedImageCaption');
+    const zoomAddToCartBtn = document.getElementById('zoomAddToCartBtn');
 
     if (displayImg) displayImg.src = formatImageUrl(imgUrl);
     if (displayCaption) displayCaption.textContent = caption || '';
+    if (zoomAddToCartBtn) {
+      zoomAddToCartBtn.style.display = productId ? 'inline-flex' : 'none';
+      zoomAddToCartBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        <span>Add to Cart</span>
+      `;
+    }
     if (modal) modal.classList.add('open');
+  };
+
+  window.addZoomProductToCart = () => {
+    if (!currentZoomProductId) return;
+    window.addToCart(currentZoomProductId, 1);
+    const zoomAddToCartBtn = document.getElementById('zoomAddToCartBtn');
+    if (zoomAddToCartBtn) {
+      zoomAddToCartBtn.innerHTML = `<span>✓ Added to Cart</span>`;
+      setTimeout(() => {
+        if (zoomAddToCartBtn) {
+          zoomAddToCartBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+            <span>Add to Cart</span>
+          `;
+        }
+      }, 1200);
+    }
   };
 
   const closeZoomModalBtn = document.getElementById('closeZoomModalBtn');
@@ -626,14 +989,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalProductsGrid.innerHTML = html;
   }
 
-  // Single Product Card Markup: Product Image, Actual Product Name, Price
+  // Single Product Card Markup: Product Image, Actual Product Name, Price & Add to Cart
   function renderSingleProductCard(p) {
     const isWishlisted = state.wishlist.includes(p.id);
+    const cartEntry = state.cart.find(item => item.id === p.id);
+    const inCartQty = cartEntry ? cartEntry.qty : 0;
     const safeName = (p.name || '').replace(/'/g, "\\'");
     const priceContent = formatPriceHtml(p.price);
 
     return `
-      <div class="subcat-product-card" onclick="window.openImageZoomModal('${p.image}', '${safeName}')">
+      <div class="subcat-product-card" onclick="window.openImageZoomModal('${p.image}', '${safeName}', '${p.id}')">
         <div class="subcat-card-img-container">
           <img src="${formatImageUrl(p.image)}" alt="${p.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/600'" />
           <button class="card-wishlist-btn ${isWishlisted ? 'active' : ''}" title="${isWishlisted ? 'Selected in Wishlist' : 'Select to Wishlist'}" onclick="event.stopPropagation(); window.toggleProductWishlist('${p.id}')">
@@ -642,7 +1007,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <div class="subcat-card-content">
           <h4 class="subcat-product-name" title="${p.name}">${p.name}</h4>
-          ${priceContent}
+          <div class="subcat-card-bottom-row">
+            ${priceContent}
+            <button class="subcat-cart-btn ${inCartQty > 0 ? 'in-cart' : ''}" id="cartBtn_${p.id}" title="${inCartQty > 0 ? inCartQty + ' in cart' : 'Add to cart'}" onclick="window.handleAddToCart(event, '${p.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="8" cy="21" r="1"/>
+                <circle cx="19" cy="21" r="1"/>
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+              </svg>
+              <span>${inCartQty > 0 ? `In Cart (${inCartQty})` : 'Add to Cart'}</span>
+            </button>
+          </div>
         </div>
       </div>
     `;

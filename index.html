@@ -45,6 +45,16 @@
         <span class="badge-count" id="wishlistBadge">0</span>
       </button>
 
+      <!-- Cart Trigger Button with Shopping Cart Logo -->
+      <button class="icon-btn" id="cartToggleBtn" title="View Shopping Cart" aria-label="Shopping Cart">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="21" r="1"/>
+          <circle cx="19" cy="21" r="1"/>
+          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+        </svg>
+        <span class="badge-count cart-badge-count" id="cartBadge">0</span>
+      </button>
+
       <!-- Profile Menu Trigger Button with User Logo -->
       <div class="profile-dropdown-wrapper">
         <button class="icon-btn" id="profileMenuBtn" title="Open Profile Menu" aria-label="Profile Menu">
@@ -74,6 +84,9 @@
           </div>
 
           <div class="profile-links">
+            <a href="#cart" class="profile-link-item" onclick="document.getElementById('cartToggleBtn').click();">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Shopping Cart (<span id="profileCartCount">0</span>)
+            </a>
             <a href="#wishlist" class="profile-link-item" onclick="document.getElementById('wishlistToggleBtn').click();">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> Saved Wishlist Items
             </a>
@@ -520,6 +533,72 @@
   </div>
 
   <!-- ==========================================================================
+       SIDE DRAWER: SHOPPING CART
+       ========================================================================== -->
+  <div class="side-drawer" id="cartDrawer" aria-label="Shopping Cart Drawer">
+    <div class="drawer-header">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="21" r="1"/>
+          <circle cx="19" cy="21" r="1"/>
+          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+        </svg>
+        <h3 style="margin: 0; font-family: 'Cinzel', serif; font-size: 1.25rem; color: var(--warm-orange);">Shopping Cart</h3>
+      </div>
+      <button id="closeCartBtn" style="color: var(--warm-orange); font-size: 1.6rem; cursor: pointer; background: transparent; border: none;" aria-label="Close Cart">&times;</button>
+    </div>
+
+    <!-- Cart Items Scrollable Body -->
+    <div class="drawer-body" id="cartItemsContainer">
+      <!-- Dynamically populated by renderCart() -->
+    </div>
+
+    <!-- Cart Footer & Checkout Action Bar -->
+    <div class="cart-drawer-footer" id="cartFooter">
+      <div class="cart-summary-panel">
+        <div class="cart-summary-row">
+          <span class="cart-summary-label">Total Items</span>
+          <span class="cart-summary-value" id="cartTotalItems">0 Items</span>
+        </div>
+        <div class="cart-summary-row" id="cartSubtotalRow">
+          <span class="cart-summary-label">Estimated Total</span>
+          <span class="cart-grand-total" id="cartGrandTotal">₹0</span>
+        </div>
+      </div>
+
+      <div class="cart-actions-group">
+        <!-- Order Directly via WhatsApp (+91 9907473375) -->
+        <button class="cart-whatsapp-checkout-btn" id="cartWhatsAppBtn" onclick="window.checkoutViaWhatsApp()">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          <span>Order via WhatsApp (+91 9907473375)</span>
+        </button>
+
+        <!-- Secondary: Prefill Web Inquiry Form -->
+        <button class="cart-inquiry-checkout-btn" id="cartInquiryBtn" onclick="window.checkoutViaInquiryForm()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Send as Web Inquiry</span>
+        </button>
+
+        <!-- Clear Cart -->
+        <button class="cart-clear-btn" id="cartClearBtn" onclick="window.clearCart()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>Clear Cart</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Cart Notification Toast -->
+  <div id="cartToast" class="cart-toast" role="alert" aria-live="assertive">
+    <div class="cart-toast-icon">✓</div>
+    <div class="cart-toast-body">
+      <span class="cart-toast-title" id="cartToastTitle">Item added to cart</span>
+      <span class="cart-toast-sub" id="cartToastSub">View your cart anytime</span>
+    </div>
+    <button class="cart-toast-action" onclick="document.getElementById('cartToggleBtn').click()">View Cart</button>
+  </div>
+
+  <!-- ==========================================================================
        MODAL: SUBCATEGORY & PRODUCTS EXPANDER
        ========================================================================== -->
   <div class="modal-wrapper" id="subcategoryModal">
@@ -545,7 +624,13 @@
     <div class="image-zoom-content">
       <button class="image-zoom-close" id="closeZoomModalBtn">&times;</button>
       <img id="zoomedImageDisplay" src="" alt="Zoomed View" />
-      <div id="zoomedImageCaption" class="image-zoom-caption"></div>
+      <div class="image-zoom-footer">
+        <div id="zoomedImageCaption" class="image-zoom-caption"></div>
+        <button id="zoomAddToCartBtn" class="zoom-add-to-cart-btn" onclick="window.addZoomProductToCart()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          <span>Add to Cart</span>
+        </button>
+      </div>
     </div>
   </div>
 
