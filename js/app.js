@@ -103,7 +103,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const val = Number(priceNum) || 0;
     if (val <= 0) {
-      return '<div class="subcat-product-price" style="font-size: 0.8rem; color: #B84A14; font-weight: 800;">Price on Request</div>';
+      return `
+        <div class="subcat-price-unlocked-por" title="Access Authorized: Wholesale B2B pricing on request">
+          <span>🔓 Rate on Request</span>
+        </div>
+      `;
     }
     return `<div class="subcat-product-price">₹${val.toLocaleString('en-IN')}</div>`;
   }
@@ -224,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         window.closePricePasscodeModal();
-        showCartToast('Access Authorized: Prices Unlocked!', 'Product pricing is now visible across the site');
+        showCartToast('Access Authorized: Prices Unlocked! 🔓', 'Browse Noel or any catalog to view pricing');
       } else {
         if (errorBox) {
           errorBox.textContent = data.error || 'Invalid passcode. Please verify or ask Tarang Radios.';
@@ -677,7 +681,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <img src="${formatImageUrl(p.image)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm);" onerror="this.src='https://via.placeholder.com/60'" />
         <div style="flex: 1;">
           <h5 style="font-size: 0.95rem; color: var(--text-main); line-height: 1.2; font-weight: 700;">${p.name}</h5>
-          ${!state.priceHidden ? `<div style="color:var(--warm-orange); font-weight:800; font-size:0.95rem;">₹${Number(p.price).toLocaleString('en-IN')}</div>` : ''}
+          ${!state.priceHidden ? (Number(p.price) > 0 ? `<div style="color:var(--warm-orange); font-weight:800; font-size:0.95rem;">₹${Number(p.price).toLocaleString('en-IN')}</div>` : `<div style="color:#15803D; font-weight:700; font-size:0.8rem;">Rate on Request</div>`) : ''}
         </div>
         <button onclick="window.removeWishlistItem('${p.id}')" style="color: var(--warm-orange); font-size: 1.4rem; font-weight: 800;">&times;</button>
       </div>
@@ -716,7 +720,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div style="flex:1;">
               <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">${p.name}</div>
               <div style="font-size: 0.75rem; color: var(--warm-orange); font-weight: 700;">${p.subcategory || 'General'}</div>
-              ${!state.priceHidden ? `<div style="color:var(--warm-orange); font-weight:800; font-size:0.85rem;">₹${Number(p.price).toLocaleString('en-IN')}</div>` : ''}
+              ${!state.priceHidden ? (Number(p.price) > 0 ? `<div style="color:var(--warm-orange); font-weight:800; font-size:0.85rem;">₹${Number(p.price).toLocaleString('en-IN')}</div>` : `<div style="color:#15803D; font-weight:700; font-size:0.75rem;">Rate on Request</div>`) : ''}
             </div>
           </div>
         `).join('');

@@ -3948,6 +3948,21 @@ footer span {
   opacity: 0.85;
 }
 
+/* Unlocked B2B Wholesale / Rate on Request Pill */
+.subcat-price-unlocked-por {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #15803D;
+  background: #ECFDF5;
+  border: 1.2px solid rgba(16, 185, 129, 0.35);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+}
+
 /* Passcode Modal Styling */
 .price-modal-box {
   max-width: 460px;
