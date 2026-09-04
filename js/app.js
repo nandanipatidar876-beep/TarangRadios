@@ -661,21 +661,84 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // --- THE BRANDS WE DEAL WITH SECTION ---
+  // --- THE BRANDS WE DEAL WITH SECTION (PREMIUM SHOWCASE) ---
   function renderBrands() {
     if (!brandsGrid || !window.TARANG_DATA.brands) return;
-    brandsGrid.innerHTML = window.TARANG_DATA.brands.map(b => {
+
+    brandsGrid.innerHTML = window.TARANG_DATA.brands.map((b, idx) => {
       const bProdsCount = window.TARANG_DATA.products ? window.TARANG_DATA.products.filter(p => p.brandId === b.id || (p.brand && p.brand.toLowerCase() === b.name.toLowerCase())).length : 0;
+      const bCatsCount = window.TARANG_DATA.brandCategories ? window.TARANG_DATA.brandCategories.filter(c => c.brandId === b.id).length : 0;
+      
+      const badgeText = bProdsCount > 0 
+        ? `${bProdsCount} Verified Products` 
+        : (bCatsCount > 0 ? `${bCatsCount} Categories` : 'Official Partner');
+
+      // Stagger delay between 80ms - 120ms (using 95ms for ultra-smooth fluid cascading)
+      const staggerDelay = idx * 95;
+
       return `
-        <div class="brand-card" onclick="window.filterByBrand('${b.id}', '${(b.name || '').replace(/'/g, "\\'")}')">
-          <div class="brand-logo-text">${b.name}</div>
-          <div style="font-size: 0.74rem; font-weight: 700; color: #B84A14; margin-top: 0.4rem; opacity: 0.9;">
-            ${bProdsCount > 0 ? `${bProdsCount} Verified Products` : 'Official Partner'}
+        <div class="brand-card" style="--brand-stagger-delay: ${staggerDelay}ms;" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); window.filterByBrand('${b.id}', '${(b.name || '').replace(/'/g, "\\'")}')}" onclick="window.filterByBrand('${b.id}', '${(b.name || '').replace(/'/g, "\\'")}')">
+          <!-- Subtle Inner Golden Radial Glow -->
+          <div class="brand-card-glow" aria-hidden="true"></div>
+          
+          <!-- Single Light-Sweep Shimmer on Hover -->
+          <div class="brand-shimmer" aria-hidden="true"></div>
+
+          <!-- Top Status Pill -->
+          <div class="brand-card-header">
+            <span class="brand-partner-badge">
+              <span class="brand-badge-dot"></span>
+              <span>AUTHORISED</span>
+            </span>
           </div>
+
+          <!-- Center Brand Identity & Volume -->
+          <div class="brand-card-main">
+            <div class="brand-logo-text">${b.name}</div>
+            <div class="brand-meta-row">
+              <span class="brand-products-count">${badgeText}</span>
+            </div>
+          </div>
+
+          <!-- Bottom Action Prompt & Interactive Arrow -->
+          <div class="brand-card-footer">
+            <span class="brand-action-text">Explore Catalog</span>
+            <svg class="brand-card-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </div>
+
+          <!-- Animated Bottom Golden Accent Line -->
+          <div class="brand-bottom-line" aria-hidden="true"></div>
         </div>
       `;
     }).join('');
+
+    initBrandsSectionAnimations();
   }
+
+  // Brands Section Scroll-Reveal Observer
+  const initBrandsSectionAnimations = () => {
+    const brandsSection = document.getElementById('brandsSection');
+    if (!brandsSection) return;
+
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            brandsSection.classList.add('brands-in-view');
+            observer.unobserve(brandsSection);
+          }
+        });
+      }, { threshold: 0.18, rootMargin: '0px 0px -40px 0px' });
+
+      observer.observe(brandsSection);
+    } else {
+      brandsSection.classList.add('brands-in-view');
+    }
+  };
+
 
   window.filterByBrand = (brandId, brandName) => {
     const brand = window.TARANG_DATA.brands.find(b => b.id === brandId || b.name.toLowerCase() === brandName.toLowerCase());

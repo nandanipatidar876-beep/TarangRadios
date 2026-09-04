@@ -1938,54 +1938,450 @@ input:checked + .slider:before {
 }
 
 /* ==========================================================================
-   BRANDS WE DEAL WITH SECTION
+   5. BRANDS WE DEAL WITH SECTION (HIGH-END CORPORATE SHOWCASE)
+   Theme: Luxury B2B Electronics Distribution & Iconic Brand Partners
    ========================================================================== */
 
 .section-brands {
-  padding: 4.5rem 1.5rem;
-  background: #FFF4E0;
-  border-top: 2px solid var(--honey-yellow);
-  border-bottom: 2px solid var(--honey-yellow);
+  position: relative;
+  padding: 5.5rem 2rem;
+  background: linear-gradient(180deg, rgba(255, 246, 230, 0.7) 0%, rgba(255, 253, 249, 0.95) 50%, rgba(255, 244, 225, 0.6) 100%);
+  border-top: 1.5px solid rgba(255, 208, 0, 0.45);
+  border-bottom: 1.5px solid rgba(255, 208, 0, 0.45);
+  overflow: hidden;
 }
+
+/* Ambient Subtle Golden Aura */
+.brands-ambient-glow {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(255, 208, 0, 0.14) 0%, rgba(255, 69, 0, 0.05) 55%, transparent 75%);
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Section Header */
+.brands-header {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 3.5rem auto;
+}
+
+.brands-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.42rem 1.05rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(255, 208, 0, 0.16) 0%, rgba(255, 69, 0, 0.09) 100%);
+  border: 1.4px solid rgba(255, 69, 0, 0.4);
+  color: var(--warm-orange);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(255, 69, 0, 0.08);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.brands-badge:hover {
+  transform: translateY(-1px);
+  border-color: var(--warm-orange);
+}
+
+.brands-badge-icon {
+  stroke: var(--warm-orange);
+}
+
+.brands-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 3.6vw, 2.75rem);
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  margin-bottom: 0.2rem;
+}
+
+/* Animated Subtle Golden Underline */
+.brands-title-underline {
+  width: 0;
+  height: 3px;
+  margin: 0.85rem auto 1.15rem auto;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent 0%, #FFB800 20%, #FF4500 50%, #FFD000 80%, transparent 100%);
+  transition: width 750ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: 350ms;
+}
+
+.brands-subtitle {
+  font-size: 1.02rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* Scroll-Reveal Initial State for Header Elements */
+.brands-header .brands-badge,
+.brands-header .brands-title,
+.brands-header .brands-subtitle {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 650ms cubic-bezier(0.16, 1, 0.3, 1), transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brands-header .brands-badge { transition-delay: 100ms; }
+.brands-header .brands-title { transition-delay: 200ms; }
+.brands-header .brands-subtitle { transition-delay: 450ms; }
+
+/* When In View: Section Header Reveals */
+.section-brands.brands-in-view .brands-header .brands-badge,
+.section-brands.brands-in-view .brands-header .brands-title,
+.section-brands.brands-in-view .brands-header .brands-subtitle {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.section-brands.brands-in-view .brands-title-underline {
+  width: 96px;
+}
+
+/* ==========================================================================
+   BRANDS SHOWCASE GRID & PREMIUM CARDS
+   ========================================================================== */
 
 .brands-grid {
-  max-width: 1180px;
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
 }
 
+/* Premium Showcase Brand Card */
 .brand-card {
+  position: relative;
   background: #FFFFFF;
-  border: 2px solid var(--honey-yellow);
-  border-radius: var(--radius-md);
-  padding: 1.25rem 0.85rem;
-  text-align: center;
-  transition: var(--transition);
+  border: 1.5px solid rgba(255, 190, 40, 0.38);
+  border-radius: 16px;
+  padding: 1.85rem 1.4rem 1.65rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 175px;
   cursor: pointer;
-  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(216, 35, 0, 0.05);
+  user-select: none;
+  
+  /* Staggered Scroll Entrance Properties */
+  opacity: 0;
+  transform: translateY(25px);
+  transition: 
+    opacity 650ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 650ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.35s ease,
+    background 0.35s ease;
+  transition-delay: var(--brand-stagger-delay, 100ms);
 }
 
-.brand-card:hover {
-  border-color: var(--warm-orange);
-  background: #FFF9EE;
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-orange);
+/* Staggered Entrance When Section Enters Viewport */
+.section-brands.brands-in-view .brand-card {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Smooth Luxury Hover Lift & Glow */
+.section-brands.brands-in-view .brand-card:hover {
+  transform: translateY(-7px) scale(1.02);
+  border-color: rgba(255, 110, 0, 0.58);
+  box-shadow: 
+    0 20px 42px -12px rgba(216, 35, 0, 0.16),
+    0 0 26px -4px rgba(255, 208, 0, 0.22);
+  background: #FFFFFF;
+}
+
+/* Subtle Golden Radial Glow Inside Card */
+.brand-card-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 215, 0, 0.14) 0%, rgba(255, 69, 0, 0.05) 55%, transparent 75%);
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.brand-card:hover .brand-card-glow {
+  opacity: 1;
+}
+
+/* Premium Light-Sweep Shimmer (Runs ONLY ONCE per Hover) */
+.brand-shimmer {
+  position: absolute;
+  top: 0;
+  left: -130%;
+  width: 75%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 45%,
+    rgba(255, 235, 180, 0.5) 50%,
+    rgba(255, 255, 255, 0.35) 55%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+}
+
+.brand-card:hover .brand-shimmer {
+  animation: brandShimmerOnce 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes brandShimmerOnce {
+  0% {
+    left: -130%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    left: 150%;
+    opacity: 0;
+  }
+}
+
+/* Card Top Status Pill */
+.brand-card-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 0.85rem;
+}
+
+.brand-partner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  background: #FFF7EB;
+  border: 1px solid rgba(255, 184, 0, 0.45);
+  font-size: 0.64rem;
+  font-weight: 800;
+  color: #B84A14;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.brand-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FF4500;
+  box-shadow: 0 0 4px rgba(255, 69, 0, 0.6);
+}
+
+/* Card Center: Brand Logo / Typography */
+.brand-card-main {
+  position: relative;
+  z-index: 2;
+  margin: 0.35rem 0 1.1rem 0;
 }
 
 .brand-logo-text {
   font-family: 'Cinzel', serif;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
   font-weight: 900;
   color: var(--warm-orange);
-  margin-bottom: 0.25rem;
+  line-height: 1.2;
+  letter-spacing: 0.4px;
+  transition: 
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.35s ease;
 }
 
-.brand-desc {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
+.brand-card:hover .brand-logo-text {
+  transform: scale(1.03);
+  filter: brightness(1.08) drop-shadow(0 2px 8px rgba(255, 69, 0, 0.22));
+  color: #D82300;
+}
+
+.brand-meta-row {
+  margin-top: 0.45rem;
+}
+
+.brand-products-count {
+  display: inline-block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #7A3512;
+  background: #FFF8EE;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 184, 0, 0.3);
+  letter-spacing: 0.3px;
+  transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+}
+
+.brand-card:hover .brand-products-count {
+  color: var(--warm-orange);
+  border-color: rgba(255, 69, 0, 0.4);
+  background: #FFF2DF;
+}
+
+/* Card Footer: Micro-action & Animated Arrow */
+.brand-card-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.75rem;
+  border-top: 1.2px dashed #FFE8D0;
+}
+
+.brand-action-text {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #8C390E;
+  letter-spacing: 0.4px;
+  transition: color 0.3s ease;
+}
+
+.brand-card:hover .brand-action-text {
+  color: var(--warm-orange);
+}
+
+.brand-card-arrow {
+  stroke: #B84A14;
+  opacity: 0.75;
+  transform: translateX(0);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s ease, opacity 0.3s ease;
+}
+
+.brand-card:hover .brand-card-arrow {
+  stroke: var(--warm-orange);
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+/* Thin Golden Line from Left to Right Near the Bottom */
+.brand-bottom-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2.8px;
+  background: linear-gradient(90deg, #FFB800 0%, #FF4500 50%, #FFD000 100%);
+  border-radius: 0 0 16px 16px;
+  transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.brand-card:hover .brand-bottom-line {
+  width: 100%;
+}
+
+/* ==========================================================================
+   RESPONSIVE LAYOUT (DESKTOP, TABLET, MOBILE)
+   ========================================================================== */
+
+@media (max-width: 991px) {
+  .section-brands {
+    padding: 4.5rem 1.5rem;
+  }
+  .brands-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.2rem;
+  }
+  .brand-card {
+    padding: 1.5rem 1.2rem 1.35rem 1.2rem;
+    min-height: 160px;
+  }
+  .brand-logo-text {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 580px) {
+  .section-brands {
+    padding: 3.5rem 1rem;
+  }
+  .brands-header {
+    margin-bottom: 2.25rem;
+  }
+  .brands-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+  }
+  .brand-card {
+    padding: 1.2rem 0.9rem 1.1rem 0.9rem;
+    min-height: 145px;
+    border-radius: 14px;
+  }
+  .brand-logo-text {
+    font-size: 1.05rem;
+  }
+  .brand-products-count {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+  }
+  .brand-action-text {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .brands-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .brands-header .brands-badge,
+  .brands-header .brands-title,
+  .brands-header .brands-subtitle,
+  .brands-title-underline,
+  .brand-card,
+  .brand-shimmer,
+  .brand-bottom-line,
+  .brand-logo-text,
+  .brand-card-arrow {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .brands-title-underline {
+    width: 96px !important;
+  }
+  .section-brands.brands-in-view .brand-card:hover {
+    transform: none !important;
+  }
 }
 
 /* ==========================================================================
