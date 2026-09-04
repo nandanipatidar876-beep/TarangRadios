@@ -71,16 +71,20 @@
             </div>
           </div>
 
-          <!-- Price Hide/Show Switch Control -->
-          <div class="price-toggle-box">
-            <div class="toggle-info">
-              <h4>Hide Product Prices</h4>
-              <p id="priceToggleStatusText">Mask prices across site</p>
+          <!-- Price Access Protection Card -->
+          <div class="price-access-card" id="priceAccessCard">
+            <div class="price-access-header">
+              <div class="price-status-badge" id="priceStatusBadge">
+                <span id="priceStatusIcon">🔒</span>
+                <span id="priceStatusText">Prices Protected</span>
+              </div>
             </div>
-            <label class="switch">
-              <input type="checkbox" id="priceToggleInput">
-              <span class="slider"></span>
-            </label>
+            <p class="price-access-sub" id="priceAccessSub">Enter access code to reveal wholesale & retail prices.</p>
+            <button type="button" class="price-access-btn" id="priceAccessActionBtn" onclick="window.handlePriceAccessAction()">
+              <svg id="priceActionSvgLock" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+              <svg id="priceActionSvgUnlock" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span id="priceActionBtnText">Unlock Prices</span>
+            </button>
           </div>
 
           <div class="profile-links">
@@ -630,6 +634,63 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
           <span>Add to Cart</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: PRICE ACCESS PASSCODE PROTECTION
+       ========================================================================== -->
+  <div class="modal-wrapper" id="pricePasscodeModal" role="dialog" aria-modal="true" aria-labelledby="passcodeModalTitle">
+    <div class="modal-content-box price-modal-box">
+      <button class="modal-close-btn" id="closePasscodeModalBtn" onclick="window.closePricePasscodeModal()">&times;</button>
+      
+      <div class="price-modal-header">
+        <div class="price-modal-icon-badge">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warm-orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <h3 id="passcodeModalTitle" class="price-modal-title">Tarang Radios — Price Access</h3>
+        <p class="price-modal-subtitle">Enter your secret dealer/customer access code to unlock and view product pricing.</p>
+      </div>
+
+      <form id="pricePasscodeForm" onsubmit="window.submitPricePasscode(event)">
+        <div class="passcode-input-wrapper">
+          <input 
+            type="password" 
+            id="pricePasscodeInput" 
+            class="passcode-input" 
+            placeholder="Enter access code (e.g. 1972)" 
+            autocomplete="off" 
+            required 
+          />
+          <button type="button" class="passcode-toggle-eye" id="passcodeToggleEye" onclick="window.togglePasscodeVisibility()" title="Show/Hide Code" aria-label="Toggle code visibility">
+            <svg id="eyeIconOpen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="eyeIconClosed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+          </button>
+        </div>
+
+        <div id="passcodeErrorBox" class="passcode-error-box" style="display: none;"></div>
+
+        <div class="price-modal-actions">
+          <button type="submit" class="btn-primary" id="pricePasscodeSubmitBtn" style="flex: 1; justify-content: center;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+            <span id="pricePasscodeSubmitText">Unlock Prices</span>
+          </button>
+          <button type="button" class="price-modal-cancel-btn" onclick="window.closePricePasscodeModal()">
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <div class="price-modal-footer">
+        <span>Need the code?</span>
+        <a href="https://wa.me/919907473375?text=Hello%20Tarang%20Radios,%20I%20would%20like%20to%20request%20the%20dealer%20price%20access%20code%20to%20view%20component%20pricing." target="_blank" rel="noopener noreferrer" class="price-modal-whatsapp-link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          <span>Ask on WhatsApp (+91 9907473375)</span>
+        </a>
       </div>
     </div>
   </div>

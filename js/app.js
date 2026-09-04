@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- STATE MANAGEMENT ---
   let state = {
-    priceHidden: localStorage.getItem('tarang_price_hidden') === 'true',
+    priceUnlocked: localStorage.getItem('tarang_price_unlocked') === 'true',
+    priceHidden: localStorage.getItem('tarang_price_unlocked') !== 'true',
     wishlist: JSON.parse(localStorage.getItem('tarang_wishlist') || '[]'),
     cart: JSON.parse(localStorage.getItem('tarang_cart') || '[]'),
     activeSubcategoryFilter: null,
@@ -90,10 +91,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     return img;
   }
 
-  // Price Display Helper (Respects Price Hide Switch)
+  // Price Display Helper (Protected by Access Code)
   function formatPriceHtml(priceNum) {
-    if (state.priceHidden) {
-      return '<div class="subcat-product-price" style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700;">Price Hidden</div>';
+    if (!state.priceUnlocked || state.priceHidden) {
+      return `
+        <div class="subcat-price-locked" onclick="event.stopPropagation(); window.openPricePasscodeModal();" title="Prices Protected - Click to enter access code">
+          <span>🔒 Price Protected</span>
+          <span class="unlock-hint">Unlock</span>
+        </div>
+      `;
     }
     const val = Number(priceNum) || 0;
     if (val <= 0) {
@@ -102,28 +108,175 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `<div class="subcat-product-price">₹${val.toLocaleString('en-IN')}</div>`;
   }
 
-  // --- PRICE HIDE TOGGLE INITIALIZATION ---
-  if (priceToggleInput) {
-    priceToggleInput.checked = state.priceHidden;
-    updatePriceToggleUI();
+  // --- PRICE ACCESS STATUS & PASSCODE CONTROLLERS ---
+  function updatePriceAccessUI() {
+    const badge = document.getElementById('priceStatusBadge');
+    const icon = document.getElementById('priceStatusIcon');
+    const text = document.getElementById('priceStatusText');
+    const sub = document.getElementById('priceAccessSub');
+    const btn = document.getElementById('priceAccessActionBtn');
+    const btnText = document.getElementById('priceActionBtnText');
+    const svgLock = document.getElementById('priceActionSvgLock');
+    const svgUnlock = document.getElementById('priceActionSvgUnlock');
 
-    priceToggleInput.addEventListener('change', (e) => {
-      state.priceHidden = e.target.checked;
-      localStorage.setItem('tarang_price_hidden', state.priceHidden);
-      updatePriceToggleUI();
-      renderWishlist();
-      renderCart();
-      if (state.selectedCategoryForModal || state.selectedBrandForModal) {
-        renderModalProducts();
-      }
-    });
-  }
-
-  function updatePriceToggleUI() {
-    if (priceToggleStatusText) {
-      priceToggleStatusText.textContent = state.priceHidden ? 'Prices Hidden Across Site' : 'Prices Visible Across Site';
+    if (state.priceUnlocked) {
+      if (badge) badge.classList.add('unlocked');
+      if (icon) icon.textContent = '🔓';
+      if (text) text.textContent = 'Prices Unlocked';
+      if (sub) sub.textContent = 'Authorized component pricing is visible across site.';
+      if (btn) btn.classList.add('locked-state');
+      if (btnText) btnText.textContent = 'Lock Prices';
+      if (svgLock) svgLock.style.display = 'none';
+      if (svgUnlock) svgUnlock.style.display = 'inline-block';
+    } else {
+      if (badge) badge.classList.remove('unlocked');
+      if (icon) icon.textContent = '🔒';
+      if (text) text.textContent = 'Prices Protected';
+      if (sub) sub.textContent = 'Enter secret access code to reveal product pricing.';
+      if (btn) btn.classList.remove('locked-state');
+      if (btnText) btnText.textContent = 'Unlock Prices';
+      if (svgLock) svgLock.style.display = 'inline-block';
+      if (svgUnlock) svgUnlock.style.display = 'none';
     }
   }
+
+  window.handlePriceAccessAction = () => {
+    if (state.priceUnlocked) {
+      window.lockPrices();
+    } else {
+      window.openPricePasscodeModal();
+    }
+  };
+
+  window.openPricePasscodeModal = () => {
+    const modal = document.getElementById('pricePasscodeModal');
+    const input = document.getElementById('pricePasscodeInput');
+    const errorBox = document.getElementById('passcodeErrorBox');
+    if (errorBox) errorBox.style.display = 'none';
+    if (input) {
+      input.value = '';
+      input.type = 'password';
+    }
+    const eyeOpen = document.getElementById('eyeIconOpen');
+    const eyeClosed = document.getElementById('eyeIconClosed');
+    if (eyeOpen) eyeOpen.style.display = 'inline-block';
+    if (eyeClosed) eyeClosed.style.display = 'none';
+
+    if (modal) modal.classList.add('open');
+    setTimeout(() => { if (input) input.focus(); }, 180);
+  };
+
+  window.closePricePasscodeModal = () => {
+    const modal = document.getElementById('pricePasscodeModal');
+    if (modal) modal.classList.remove('open');
+  };
+
+  window.togglePasscodeVisibility = () => {
+    const input = document.getElementById('pricePasscodeInput');
+    const eyeOpen = document.getElementById('eyeIconOpen');
+    const eyeClosed = document.getElementById('eyeIconClosed');
+    if (!input) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (eyeOpen) eyeOpen.style.display = 'none';
+      if (eyeClosed) eyeClosed.style.display = 'inline-block';
+    } else {
+      input.type = 'password';
+      if (eyeOpen) eyeOpen.style.display = 'inline-block';
+      if (eyeClosed) eyeClosed.style.display = 'none';
+    }
+  };
+
+  window.submitPricePasscode = async (e) => {
+    if (e) e.preventDefault();
+    const input = document.getElementById('pricePasscodeInput');
+    const errorBox = document.getElementById('passcodeErrorBox');
+    const submitBtn = document.getElementById('pricePasscodeSubmitBtn');
+    const submitText = document.getElementById('pricePasscodeSubmitText');
+
+    if (!input) return;
+    const entered = input.value.trim();
+    if (!entered) return;
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitText) submitText.textContent = 'Verifying...';
+    if (errorBox) errorBox.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/verify-price-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: entered })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.valid) {
+        state.priceUnlocked = true;
+        state.priceHidden = false;
+        localStorage.setItem('tarang_price_unlocked', 'true');
+        localStorage.setItem('tarang_price_hidden', 'false');
+
+        updatePriceAccessUI();
+        renderWishlist();
+        renderCart();
+        if (state.selectedCategoryForModal || state.selectedBrandForModal) {
+          renderModalProducts();
+        }
+
+        window.closePricePasscodeModal();
+        showCartToast('Access Authorized: Prices Unlocked!', 'Product pricing is now visible across the site');
+      } else {
+        if (errorBox) {
+          errorBox.textContent = data.error || 'Invalid passcode. Please verify or ask Tarang Radios.';
+          errorBox.style.display = 'block';
+        }
+        input.focus();
+        input.select();
+      }
+    } catch (err) {
+      // Offline fallback: check default code 1972
+      if (entered === '1972') {
+        state.priceUnlocked = true;
+        state.priceHidden = false;
+        localStorage.setItem('tarang_price_unlocked', 'true');
+        localStorage.setItem('tarang_price_hidden', 'false');
+        updatePriceAccessUI();
+        renderWishlist();
+        renderCart();
+        if (state.selectedCategoryForModal || state.selectedBrandForModal) {
+          renderModalProducts();
+        }
+        window.closePricePasscodeModal();
+        showCartToast('Access Authorized: Prices Unlocked!', 'Product pricing is now visible');
+      } else {
+        if (errorBox) {
+          errorBox.textContent = 'Invalid passcode. Please try again or contact support.';
+          errorBox.style.display = 'block';
+        }
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+      if (submitText) submitText.textContent = 'Unlock Prices';
+    }
+  };
+
+  window.lockPrices = () => {
+    state.priceUnlocked = false;
+    state.priceHidden = true;
+    localStorage.setItem('tarang_price_unlocked', 'false');
+    localStorage.setItem('tarang_price_hidden', 'true');
+
+    updatePriceAccessUI();
+    renderWishlist();
+    renderCart();
+    if (state.selectedCategoryForModal || state.selectedBrandForModal) {
+      renderModalProducts();
+    }
+    showCartToast('Prices Protected', 'Access code is required to view pricing');
+  };
+
+  // Initial Price Access UI Setup
+  updatePriceAccessUI();
 
   // --- PROFILE MENU TOGGLE ---
   if (profileMenuBtn && profileMenuPanel) {
@@ -188,7 +341,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (cartDrawer) cartDrawer.classList.remove('open');
     if (drawerOverlay) drawerOverlay.classList.remove('open');
     if (subcategoryModal) subcategoryModal.classList.remove('open');
+    const passcodeModal = document.getElementById('pricePasscodeModal');
+    if (passcodeModal) passcodeModal.classList.remove('open');
   }
+
+  const pricePasscodeModalElem = document.getElementById('pricePasscodeModal');
+  if (pricePasscodeModalElem) {
+    pricePasscodeModalElem.addEventListener('click', (e) => {
+      if (e.target === pricePasscodeModalElem) {
+        window.closePricePasscodeModal();
+      }
+    });
+  }
+
 
   // --- SHOPPING CART STATE & LOGIC ---
   function updateCartBadge() {
@@ -375,7 +540,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <h5 class="cart-item-title" title="${p.name}">${p.name}</h5>
             <div class="cart-item-meta">
               <span class="cart-item-subcat">${p.subcategory || p.brand || 'General'}</span>
-              ${!state.priceHidden ? `<span class="cart-item-price">₹${unitPrice.toLocaleString('en-IN')}</span>` : '<span class="cart-item-price" style="font-size: 0.75rem; color: var(--text-muted);">Price on Request</span>'}
+              ${!state.priceHidden ? `<span class="cart-item-price">₹${unitPrice.toLocaleString('en-IN')}</span>` : '<span class="cart-item-price" onclick="window.openPricePasscodeModal()" style="font-size: 0.74rem; color: #B84A14; cursor: pointer; font-weight: 700;" title="Click to unlock prices">🔒 Price Protected (Unlock)</span>'}
             </div>
             <div class="cart-item-bottom-row">
               <div class="cart-qty-stepper">
@@ -383,7 +548,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="cart-qty-val">${entry.qty}</span>
                 <button class="cart-qty-btn" onclick="window.updateCartItemQty('${p.id}', 1)" aria-label="Increase quantity">+</button>
               </div>
-              ${!state.priceHidden ? `<div class="cart-item-total">₹${lineTotal.toLocaleString('en-IN')}</div>` : ''}
+              ${!state.priceHidden ? `<div class="cart-item-total">₹${lineTotal.toLocaleString('en-IN')}</div>` : '<div class="cart-item-total" style="font-size: 0.75rem; color: var(--text-muted);">Protected</div>'}
               <button class="cart-item-delete" onclick="window.removeCartItem('${p.id}')" title="Remove item" aria-label="Remove item">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
@@ -396,7 +561,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     cartItemsContainer.innerHTML = html;
     if (cartTotalItems) cartTotalItems.textContent = `${totalItems} ${totalItems === 1 ? 'Item' : 'Items'}`;
     if (cartGrandTotal) {
-      cartGrandTotal.textContent = !state.priceHidden ? `₹${grandTotal.toLocaleString('en-IN')}` : 'Price on Request';
+      cartGrandTotal.textContent = !state.priceHidden ? `₹${grandTotal.toLocaleString('en-IN')}` : '🔒 Price Protected (Code Required)';
     }
   }
 

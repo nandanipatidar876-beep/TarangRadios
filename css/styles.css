@@ -3835,3 +3835,274 @@ footer span {
   }
 }
 
+/* ==========================================================================
+   PRICE ACCESS PROTECTION & PASSCODE MODAL
+   ========================================================================== */
+
+/* Profile Menu Price Access Card */
+.price-access-card {
+  background: #FFF8EE;
+  border: 1.5px solid rgba(255, 184, 0, 0.45);
+  border-radius: 12px;
+  padding: 0.95rem;
+  margin: 0.75rem 0 1rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.price-access-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.price-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  transition: all 0.3s ease;
+}
+
+.price-status-badge.unlocked {
+  background: #ECFDF5;
+  color: #059669;
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.price-access-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-bottom: 0.75rem;
+}
+
+.price-access-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.52rem 0.9rem;
+  background: linear-gradient(135deg, #FF6600 0%, #D82300 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 8px rgba(216, 35, 0, 0.2);
+}
+
+.price-access-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(216, 35, 0, 0.32);
+}
+
+.price-access-btn.locked-state {
+  background: #FFFFFF;
+  color: var(--warm-orange);
+  border: 1.4px solid var(--warm-orange);
+  box-shadow: none;
+}
+
+.price-access-btn.locked-state:hover {
+  background: #FFF3E0;
+}
+
+/* Product Card Locked Price Badge */
+.subcat-price-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #9A3412;
+  background: #FFF5E5;
+  border: 1.2px solid rgba(255, 184, 0, 0.55);
+  padding: 0.28rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.subcat-price-locked:hover {
+  background: var(--warm-orange);
+  color: #FFFFFF;
+  border-color: var(--warm-orange);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(255, 69, 0, 0.25);
+}
+
+.subcat-price-locked .unlock-hint {
+  font-size: 0.68rem;
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* Passcode Modal Styling */
+.price-modal-box {
+  max-width: 460px;
+  padding: 2.2rem;
+  border: 2.5px solid rgba(255, 184, 0, 0.7);
+  border-radius: 20px;
+}
+
+.price-modal-header {
+  text-align: center;
+  margin-bottom: 1.6rem;
+}
+
+.price-modal-icon-badge {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 1rem auto;
+  border-radius: 50%;
+  background: #FFF4E0;
+  border: 2px solid var(--honey-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(255, 69, 0, 0.12);
+}
+
+.price-modal-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--warm-orange);
+  line-height: 1.25;
+  margin-bottom: 0.45rem;
+}
+
+.price-modal-subtitle {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.passcode-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.passcode-input {
+  width: 100%;
+  padding: 0.85rem 3rem 0.85rem 1.1rem;
+  border: 2px solid rgba(255, 184, 0, 0.6);
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: #FFFDF9;
+  color: var(--text-main);
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.passcode-input:focus {
+  border-color: var(--warm-orange);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(255, 69, 0, 0.14);
+}
+
+.passcode-toggle-eye {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.passcode-toggle-eye:hover {
+  color: var(--warm-orange);
+}
+
+.passcode-error-box {
+  background: #FEF2F2;
+  border: 1.5px solid #FCA5A5;
+  color: #B91C1C;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-top: 0.6rem;
+  line-height: 1.35;
+  animation: shakeX 0.4s ease;
+}
+
+@keyframes shakeX {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.price-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.4rem;
+}
+
+.price-modal-cancel-btn {
+  padding: 0.75rem 1.4rem;
+  background: #FFF8EE;
+  border: 1.5px solid rgba(255, 184, 0, 0.45);
+  border-radius: var(--radius-full);
+  color: var(--text-main);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.price-modal-cancel-btn:hover {
+  background: #FFEAC2;
+  border-color: var(--warm-orange);
+}
+
+.price-modal-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.1rem;
+  border-top: 1.5px dashed #FFE6C9;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.price-modal-whatsapp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #15803D;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.82rem;
+  transition: color 0.2s ease;
+}
+
+.price-modal-whatsapp-link:hover {
+  color: #166534;
+  text-decoration: underline;
+}
+
+

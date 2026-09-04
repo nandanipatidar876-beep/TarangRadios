@@ -43,6 +43,31 @@ def verify_password(password: str, pwd_hash: str, salt: str) -> bool:
     new_hash, _ = hash_password(password, salt)
     return secrets.compare_digest(new_hash, pwd_hash)
 
+# ---------------------------------------------------------------------------
+# Price Access Passcode Helper
+# ---------------------------------------------------------------------------
+def get_price_access_code() -> str:
+    """Reads PRICE_ACCESS_CODE dynamically from environment or .env file, with fallback to '1972'."""
+    # 1. Check current process environment
+    code = os.environ.get("PRICE_ACCESS_CODE", "").strip()
+    if code:
+        return code
+    # 2. Check directly from .env file
+    env_file = os.path.join(STATIC_DIR, ".env")
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("PRICE_ACCESS_CODE="):
+                        val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        if val:
+                            return val
+        except Exception:
+            pass
+    # 3. Default fallback code
+    return "1972"
+
 
 # ---------------------------------------------------------------------------
 # Authentication Session Validation
@@ -183,6 +208,12 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/export/csv-template":
             return self.handle_csv_template_download()
 
+        # Admin Price Code Inspection
+        if path == "/api/admin/price-code":
+            if not authenticate_request(self.headers):
+                return self.send_json({"error": "Unauthorized"}, 401)
+            return self.send_json({"code": get_price_access_code()})
+
         # Fallback to static files
         return super().do_GET()
 
@@ -193,6 +224,10 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
+        # Public Price Passcode Verification
+        if path == "/api/verify-price-code":
+            return self.handle_verify_price_code()
+
         # Login / Logout
         if path == "/api/auth/login":
             return self.handle_auth_login()
@@ -202,6 +237,10 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         user = authenticate_request(self.headers)
         if not user:
             return self.send_json({"error": "Unauthorized."}, 401)
+
+        # Admin Price Code Update
+        if path == "/api/admin/price-code":
+            return self.handle_admin_price_code()
 
         # Password change
         if path == "/api/auth/change-password":
@@ -1415,6 +1454,60 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         conn.commit()
         conn.close()
         return self.send_json({"success": True, "message": "Password updated successfully"})
+
+    # -----------------------------------------------------------------------
+    # PRICE PASSCODE VERIFICATION & ADMIN SETTINGS
+    # -----------------------------------------------------------------------
+    def handle_verify_price_code(self):
+        data = self.read_json_body()
+        submitted_code = str(data.get("code", "")).strip()
+        actual_code = get_price_access_code()
+
+        if submitted_code and secrets.compare_digest(submitted_code, actual_code):
+            return self.send_json({
+                "valid": True,
+                "message": "Price access authorized successfully."
+            })
+        else:
+            return self.send_json({
+                "valid": False,
+                "error": "Invalid price access code. Please check with Tarang Radios."
+            }, 401)
+
+    def handle_admin_price_code(self):
+        data = self.read_json_body()
+        new_code = str(data.get("code", "")).strip()
+        if not new_code:
+            return self.send_json({"error": "Price access code cannot be empty."}, 400)
+
+        # Update environment in memory
+        os.environ["PRICE_ACCESS_CODE"] = new_code
+
+        # Update .env file persistently
+        env_file = os.path.join(STATIC_DIR, ".env")
+        try:
+            lines = []
+            found = False
+            if os.path.exists(env_file):
+                with open(env_file, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+                for i, line in enumerate(lines):
+                    if line.strip().startswith("PRICE_ACCESS_CODE="):
+                        lines[i] = f"PRICE_ACCESS_CODE={new_code}\n"
+                        found = True
+                        break
+            if not found:
+                lines.append(f"\nPRICE_ACCESS_CODE={new_code}\n")
+            with open(env_file, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+        except Exception as e:
+            print(f"Notice: Could not write to .env file: {e}")
+
+        return self.send_json({
+            "success": True,
+            "message": "Price access code updated successfully.",
+            "code": new_code
+        })
 
 
 def run_server():
