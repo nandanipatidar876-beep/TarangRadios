@@ -716,9 +716,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // ==========================================================================
+  // ABOUT US SECTION - INTERACTIVE 3D TILT & SMOOTH SCROLL REVEAL
+  // ==========================================================================
+  const initAboutSectionAnimations = () => {
+    const aboutSection = document.getElementById('aboutSection');
+    const visualFrame = document.getElementById('aboutVisualFrame');
+
+    if (!aboutSection || !visualFrame) return;
+
+    // 1. Mouse Tracking 3D Tilt Effect
+    let isHovered = false;
+    visualFrame.addEventListener('mouseenter', () => {
+      isHovered = true;
+      visualFrame.style.transition = 'transform 0.12s ease-out, box-shadow 0.3s ease';
+    });
+
+    visualFrame.addEventListener('mousemove', (e) => {
+      if (!isHovered) return;
+      const rect = visualFrame.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      // Subtle professional tilt angles (-8 to +8 degrees)
+      const rotateX = ((centerY - y) / centerY) * 8;
+      const rotateY = ((x - centerX) / centerX) * 8;
+
+      visualFrame.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.025, 1.025, 1.025)`;
+    });
+
+    visualFrame.addEventListener('mouseleave', () => {
+      isHovered = false;
+      visualFrame.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.35s ease';
+      visualFrame.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+    });
+
+    // 2. Intersection Observer Scroll Reveal
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            aboutSection.classList.add('about-in-view');
+            observer.unobserve(aboutSection);
+          }
+        });
+      }, { threshold: 0.2 });
+
+      observer.observe(aboutSection);
+    }
+  };
+
+  initAboutSectionAnimations();
+
   // Load dynamic data first then initialize UI
   await loadDynamicStoreData();
   updateWishlistBadge();
   renderCategoriesGrid();
   renderBrands();
+  if (window.lucide) window.lucide.createIcons();
 });
+

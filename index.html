@@ -222,38 +222,98 @@
   <!-- ==========================================================================
        3. ABOUT US SECTION (Positioned Directly Above Product Categories)
        ========================================================================== -->
-  <section class="section-about" id="aboutSection">
+  <section class="section-about" id="aboutSection" aria-label="About Tarang Radios">
+    <!-- Ambient Golden Glow Background Accent -->
+    <div class="about-ambient-glow" aria-hidden="true"></div>
+
     <div class="about-card-grid">
+      <!-- Left Column: Story, Trust & Capabilities -->
       <div class="about-text-box">
-        <div class="hero-badge" style="margin-bottom: 1rem;">
-          <i data-lucide="award"></i> OUR HERITAGE & PASSION
+        <div class="about-pill-badge">
+          <svg class="badge-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>ESTABLISHED SINCE 1972 • INDORE, MP</span>
         </div>
-        <h2>About <span>Tarang Radios</span></h2>
-        <p>
-          For over six decades, <strong>Tarang Radios</strong> has stood as India's benchmark destination for radio enthusiasts, antique collectors, and audiophiles. Born out of a deep reverence for analog warmth and precision acoustic craftsmanship, we bridge the timeless charm of vintage vacuum tube engineering with modern audio innovations.
-        </p>
-        <p>
-          Whether you are seeking a restored 1958 Teakwood Valve Console, a high-gain multi-band transistor, a pre-loaded Saregama Carvaan, or rare NOS replacement vacuum tubes, Tarang Radios delivers original acoustic perfection and Pan-India restoration support.
+
+        <h2 class="about-main-title">About <span>Tarang Radios</span></h2>
+        
+        <div class="about-sub-tagline">
+          <span class="pulsing-radar-dot"></span>
+          <span>Trusted in Electronics. Established Since 1972.</span>
+        </div>
+
+        <p class="about-p-lead">
+          <strong>Tarang Radios</strong> is an established electronics distribution and trading company based in Indore, with over five decades of industry experience. We specialize in electronic components, cables, connectors, relays, switches, soldering solutions, and DJ spare parts.
         </p>
 
+        <p class="about-p-body">
+          Backed by strong industry relationships, reliable inventory, and an experienced team, we serve dealers, retailers, technicians, and businesses across Indore and Central India with a commitment to quality, reliability, and long-term partnerships.
+        </p>
+
+        <!-- Domain Specialties Chips -->
+        <div class="about-chips-wrapper">
+          <span class="about-spec-chip"><i data-lucide="cpu"></i> Electronic Components</span>
+          <span class="about-spec-chip"><i data-lucide="cable"></i> Cables & Connectors</span>
+          <span class="about-spec-chip"><i data-lucide="toggle-left"></i> Relays & Switches</span>
+          <span class="about-spec-chip"><i data-lucide="flame"></i> Soldering Solutions</span>
+          <span class="about-spec-chip"><i data-lucide="disc"></i> DJ Spare Parts</span>
+          <span class="about-spec-chip"><i data-lucide="building-2"></i> Central India Network</span>
+        </div>
+
+        <!-- 4 Key Performance Stats -->
         <div class="about-stats">
           <div class="stat-item">
-            <div class="stat-num">65+</div>
-            <div class="stat-label">Years Legacy</div>
+            <div class="stat-num">50+</div>
+            <div class="stat-label">Years of Trust</div>
           </div>
           <div class="stat-item">
-            <div class="stat-num">12,000+</div>
-            <div class="stat-label">Radios Restored</div>
+            <div class="stat-num">Indore</div>
+            <div class="stat-label">Central India Hub</div>
           </div>
           <div class="stat-item">
             <div class="stat-num">100%</div>
-            <div class="stat-label">Genuine Quality</div>
+            <div class="stat-label">Genuine Stock</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">B2B & Retail</div>
+            <div class="stat-label">Dealer Network</div>
           </div>
         </div>
       </div>
 
-      <div class="about-visual-frame">
-        <img src="https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=800&q=80" alt="Tarang Radios Vintage Restoration" />
+      <!-- Right Column: Interactive 3D Visual Frame with Hardware Showcase -->
+      <div class="about-visual-column">
+        <div class="about-visual-frame" id="aboutVisualFrame">
+          <div class="frame-ambient-ring"></div>
+          
+          <div class="image-wrapper">
+            <img 
+              id="aboutHeroImg"
+              src="https://res.cloudinary.com/zckt7ary/image/upload/v1788494154/tarang_radio/assets/about_tarang_radios_showcase.jpg" 
+              onerror="this.src='tarang_about_showcase.jpg'"
+              alt="Tarang Radios - Electronic Components, Relays, Microcontrollers & Cables Showcase Indore" 
+              loading="lazy" 
+            />
+            <div class="frame-shimmer-sweep"></div>
+          </div>
+
+          <!-- Floating Interactive Status Badge -->
+          <div class="about-floating-chip">
+            <div class="chip-status-pulse">
+              <span class="pulse-ring"></span>
+              <span class="pulse-core"></span>
+            </div>
+            <div class="chip-content">
+              <span class="chip-title">ACTIVE DISTRIBUTION</span>
+              <span class="chip-sub">Central India Hub • Indore</span>
+            </div>
+          </div>
+
+          <!-- Bottom Corner Frequency Ribbon -->
+          <div class="about-corner-ribbon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>
+            <span>SINCE 1972</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
