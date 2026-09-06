@@ -762,5 +762,50 @@ const TARANG_DATA = {
         "Impedance": "4 - 8 Ohm"
       }
     }
+  ],
+  offers: [
+    {
+      id: "offer-b2b-bulk-deal",
+      title: "Mega B2B Wholesale Deal",
+      subtitle: "Capacitors, Relays, ICs & Connectors",
+      badgeText: "🔥 SPECIAL SCHEME",
+      discountText: "UP TO 25% OFF",
+      description: "Special tiered trade discounts for electronics repair centers, dealers & industrial bulk buyers across Central India.",
+      couponCode: "BULK25",
+      ctaText: "View Wholesale Catalog",
+      ctaLink: "#categorySection",
+      bgGradient: "orange",
+      isActive: true,
+      displayOrder: 1
+    },
+    {
+      id: "offer-soldering-combo",
+      title: "Soldering & Workstation Kits",
+      subtitle: "Precision Soldering Irons, Elements & Accessories",
+      badgeText: "⚡ FLASH PROMO",
+      discountText: "EXTRA 15% OFF",
+      description: "Premium genuine soldering stations, heat-resistant bits, flux and stands at exclusive promotional prices.",
+      couponCode: "SOLDER15",
+      ctaText: "Explore Soldering Solutions",
+      ctaLink: "#categorySection",
+      bgGradient: "gold",
+      isActive: true,
+      displayOrder: 2
+    },
+    {
+      id: "offer-dj-audio-spares",
+      title: "DJ & Professional Audio Spares",
+      subtitle: "High-Grade Neutrik-Style Connectors & Cables",
+      badgeText: "💎 DEAL OF THE MONTH",
+      discountText: "FLAT ₹300 OFF",
+      description: "Stock up on heavy-duty XLR, Speakon, 6.35mm jacks and pro audio replacement spare parts with verified quality.",
+      couponCode: "AUDIOPRO",
+      ctaText: "Contact For DJ Spares",
+      ctaLink: "#contactSection",
+      bgGradient: "emerald",
+      isActive: true,
+      displayOrder: 3
+    }
   ]
 };
+

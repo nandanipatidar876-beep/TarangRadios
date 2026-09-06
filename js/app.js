@@ -5,7 +5,11 @@
  */
 
 // Global state container
-window.TARANG_DATA = window.TARANG_DATA || { brands: [], categories: [], brandCategories: [], products: [] };
+window.TARANG_DATA = (typeof TARANG_DATA !== 'undefined') ? TARANG_DATA : (window.TARANG_DATA || { brands: [], categories: [], brandCategories: [], products: [], offers: [] });
+if (typeof TARANG_DATA !== 'undefined' && !window.TARANG_DATA.offers && TARANG_DATA.offers) {
+  window.TARANG_DATA.offers = TARANG_DATA.offers;
+}
+
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Lucide Icons
@@ -78,12 +82,16 @@ document.addEventListener('DOMContentLoaded', async () => {
           window.TARANG_DATA = liveData;
           updateCartBadge();
           renderCart();
+          if (liveData.offers) {
+            renderOffersSection(liveData.offers);
+          }
         }
       }
     } catch (err) {
       console.log('Using offline dataset fallback.');
     }
   }
+
 
   // Image URL Formatter Helper
   function formatImageUrl(img) {
@@ -1577,7 +1585,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Load dynamic data first then initialize UI
+  // Render initial fallback dataset immediately
+  renderOffersSection(window.TARANG_DATA.offers || []);
+  renderCategoriesGrid();
+  renderBrands();
+
+  // Load live dynamic data from database and refresh
   await loadDynamicStoreData();
   updateWishlistBadge();
   renderOffersSection(window.TARANG_DATA.offers || []);
@@ -1585,5 +1598,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderBrands();
   if (window.lucide) window.lucide.createIcons();
 });
+
 
 
