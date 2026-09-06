@@ -1447,13 +1447,143 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  initAboutSectionAnimations();
+  // ==========================================================================
+  // OFFERS & PROMOTIONS SECTION RENDERING & INTERACTION
+  // ==========================================================================
+  window.copyOfferCode = function(code, btnElement) {
+    if (!code) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(() => {
+        markCopied(btnElement);
+      }).catch(() => fallbackCopy(code, btnElement));
+    } else {
+      fallbackCopy(code, btnElement);
+    }
+  };
+
+  function fallbackCopy(text, btnElement) {
+    const input = document.createElement('input');
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    try {
+      document.execCommand('copy');
+      markCopied(btnElement);
+    } catch (e) {}
+    document.body.removeChild(input);
+  }
+
+  function markCopied(btnElement) {
+    if (!btnElement) return;
+    const origHtml = btnElement.innerHTML;
+    btnElement.classList.add('copied');
+    btnElement.innerHTML = `✓ Copied!`;
+    setTimeout(() => {
+      btnElement.classList.remove('copied');
+      btnElement.innerHTML = origHtml;
+    }, 2000);
+  }
+
+  function renderOffersSection(offersList) {
+    const offersSection = document.getElementById('offersSection');
+    const offersGrid = document.getElementById('offersGrid');
+    if (!offersSection || !offersGrid) return;
+
+    if (!offersList || offersList.length === 0) {
+      offersSection.style.display = 'none';
+      return;
+    }
+
+    offersSection.style.display = 'block';
+    offersGrid.innerHTML = offersList.map((offer) => {
+      const themeClass = `theme-${offer.bgGradient || 'orange'}`;
+      const badgeHtml = offer.badgeText 
+        ? `<span class="offer-badge">${offer.badgeText}</span>` 
+        : `<span class="offer-badge">🔥 SPECIAL OFFER</span>`;
+
+      const discountHtml = offer.discountText 
+        ? `<div class="offer-discount-banner">${offer.discountText}</div>` 
+        : '';
+
+      const couponHtml = offer.couponCode ? `
+        <div class="offer-coupon-box">
+          <div class="coupon-left">
+            <span class="coupon-label">Coupon Code</span>
+            <span class="coupon-code-text">${offer.couponCode}</span>
+          </div>
+          <button type="button" class="coupon-copy-btn" onclick="window.copyOfferCode('${offer.couponCode}', this)" title="Copy coupon code">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
+        </div>
+      ` : '';
+
+      const ctaLink = offer.ctaLink || '#categorySection';
+      const ctaText = offer.ctaText || 'Explore Deals';
+
+      return `
+        <div class="offer-card ${themeClass}">
+          <div>
+            <div class="offer-card-top">
+              ${badgeHtml}
+              <div class="offer-live-tag">
+                <span class="offer-live-dot"></span>
+                <span>Active</span>
+              </div>
+            </div>
+
+            ${discountHtml}
+            <h3 class="offer-title">${offer.title}</h3>
+            ${offer.subtitle ? `<div class="offer-subtitle">${offer.subtitle}</div>` : ''}
+            ${offer.description ? `<p class="offer-description">${offer.description}</p>` : ''}
+          </div>
+
+          <div class="offer-footer-zone">
+            ${couponHtml}
+            <a href="${ctaLink}" class="offer-cta-btn">
+              <span>${ctaText}</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Mobile Navigation Drawer
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const mobileNavDrawer = document.getElementById('mobileNavDrawer');
+  const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+  const mobileNavClose = document.getElementById('mobileNavClose');
+
+  if (hamburgerBtn && mobileNavDrawer) {
+    const openDrawer = () => {
+      mobileNavDrawer.classList.add('open');
+      if (mobileNavOverlay) mobileNavOverlay.classList.add('open');
+      hamburgerBtn.setAttribute('aria-expanded', 'true');
+    };
+    const closeDrawer = () => {
+      mobileNavDrawer.classList.remove('open');
+      if (mobileNavOverlay) mobileNavOverlay.classList.remove('open');
+      hamburgerBtn.setAttribute('aria-expanded', 'false');
+    };
+
+    hamburgerBtn.addEventListener('click', openDrawer);
+    if (mobileNavClose) mobileNavClose.addEventListener('click', closeDrawer);
+    if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeDrawer);
+
+    document.querySelectorAll('.mobile-nav-link').forEach(link => {
+      link.addEventListener('click', closeDrawer);
+    });
+  }
 
   // Load dynamic data first then initialize UI
   await loadDynamicStoreData();
   updateWishlistBadge();
+  renderOffersSection(window.TARANG_DATA.offers || []);
   renderCategoriesGrid();
   renderBrands();
   if (window.lucide) window.lucide.createIcons();
 });
+
 

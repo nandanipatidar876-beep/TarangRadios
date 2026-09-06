@@ -22,6 +22,9 @@ const state = {
   // All Products for Price Management
   allProductsForPrice: [],
 
+  // Offers & Promotions
+  offers: [],
+
   // Bulk Uploads
   uploadedImagesMap: new Set(),
   parsedCsvProducts: [],
@@ -224,6 +227,7 @@ function switchTab(tabId) {
     'categories': 'Normal Categories Management',
     'subcategories': 'Normal Subcategories Management',
     'products': 'Normal Product Catalog',
+    'offers': 'Offers & Promotions Management',
     'brands-management': 'The Brands We Deal With',
     'price-management': 'Instant Price Management',
     'bulk-import': 'Bulk Import (CSV / Excel)',
@@ -243,6 +247,7 @@ function switchTab(tabId) {
   if (tabId === 'categories') loadNormalCategoriesTable();
   if (tabId === 'subcategories') loadNormalSubcategoriesTable();
   if (tabId === 'products') loadNormalProductsTable();
+  if (tabId === 'offers') loadOffersTable();
   if (tabId === 'brands-management') loadTheBrandsWeDealWith();
   if (tabId === 'price-management') loadPriceManagementTable();
   if (tabId === 'bulk-images') loadMediaLibrary();
@@ -280,6 +285,13 @@ async function loadDashboardStats() {
     document.getElementById('badgeNormalCategoriesCount').textContent = stats.totalNormalCategories;
     document.getElementById('badgeNormalSubcategoriesCount').textContent = stats.totalSubcategories;
     
+    if (document.getElementById('statTotalOffers')) {
+      document.getElementById('statTotalOffers').textContent = stats.activeOffers || 0;
+    }
+    if (document.getElementById('badgeOffersCount')) {
+      document.getElementById('badgeOffersCount').textContent = stats.totalOffers || 0;
+    }
+
     const normalProds = await apiRequest('/api/products?type=normal');
     document.getElementById('badgeNormalProductsCount').textContent = normalProds.length;
 
@@ -1709,3 +1721,212 @@ async function exportDataBackupJson() {
     showToast('Failed to export backup.', 'error');
   }
 }
+
+// ---------------------------------------------------------------------------
+// OFFERS & PROMOTIONS MANAGEMENT CONTROLLER
+// ---------------------------------------------------------------------------
+async function loadOffersTable() {
+  const tbody = document.getElementById('offersTableBody');
+  if (!tbody) return;
+
+  try {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Loading offers...</td></tr>`;
+    const offers = await apiRequest('/api/admin/offers');
+    state.offers = offers;
+
+    const badge = document.getElementById('badgeOffersCount');
+    if (badge) badge.textContent = offers.length;
+
+    if (!offers || offers.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No promotional offers found. Click "+ Add New Offer" to create your first promotion!</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = offers.map(o => {
+      const themeColors = {
+        orange: 'background:#FFF3E0; color:#D84315; border:1px solid #FFCCBC;',
+        gold: 'background:#FFFDE7; color:#B78103; border:1px solid #FFE082;',
+        emerald: 'background:#E8F8F5; color:#117A65; border:1px solid #A3E4D7;',
+        royal: 'background:#EBF5FB; color:#1A5276; border:1px solid #AED6F1;'
+      };
+      const themeStyle = themeColors[o.bgGradient] || themeColors.orange;
+      const themeName = (o.bgGradient || 'orange').toUpperCase();
+
+      const statusBadge = o.isActive
+        ? `<span class="badge badge-success" style="cursor:pointer;" onclick="toggleOfferStatus('${o.id}')" title="Click to Deactivate">✓ Live Active</span>`
+        : `<span class="badge badge-secondary" style="cursor:pointer; background:#E0E0E0; color:#666;" onclick="toggleOfferStatus('${o.id}')" title="Click to Activate">✕ Inactive</span>`;
+
+      return `
+        <tr>
+          <td><strong style="color:var(--warm-orange); font-size:1.1rem;">#${o.displayOrder}</strong></td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span style="font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:4px; display:inline-block; width:max-content; ${themeStyle}">${o.badgeText || 'OFFER'}</span>
+              <small style="color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Theme: ${themeName}</small>
+            </div>
+          </td>
+          <td>
+            <strong style="font-size:0.95rem; color:var(--text-main);">${escapeHtml(o.title)}</strong>
+            ${o.subtitle ? `<div style="font-size:0.8rem; color:var(--warm-orange);">${escapeHtml(o.subtitle)}</div>` : ''}
+          </td>
+          <td>
+            <span style="font-family:'Cinzel', serif; font-weight:900; color:#D82300; font-size:1rem;">${escapeHtml(o.discountText || '—')}</span>
+          </td>
+          <td>
+            ${o.couponCode 
+              ? `<code style="background:#FFF0E6; color:#D14B14; font-weight:800; padding:2px 6px; border-radius:4px; font-size:0.85rem;">${escapeHtml(o.couponCode)}</code>` 
+              : '<span style="color:#999; font-size:0.8rem;">None</span>'}
+          </td>
+          <td>
+            <span style="font-size:0.8rem; font-weight:600; color:var(--text-main);">${escapeHtml(o.ctaText || 'Explore')}</span>
+            <div style="font-size:0.7rem; color:var(--text-muted); font-family:monospace;">${escapeHtml(o.ctaLink || '#')}</div>
+          </td>
+          <td>${statusBadge}</td>
+          <td style="text-align: right;">
+            <div style="display:inline-flex; gap:0.4rem;">
+              <button class="btn-icon" title="Edit Offer" onclick="openOfferModal('${o.id}')">
+                <i data-lucide="edit-2"></i>
+              </button>
+              <button class="btn-icon danger" title="Delete Offer" onclick="deleteOffer('${o.id}')">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    if (window.lucide) window.lucide.createIcons();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state error">Failed to load offers: ${err.message}</td></tr>`;
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function openOfferModal(offerId = null) {
+  const modal = document.getElementById('offerModalOverlay');
+  const titleElem = document.getElementById('offerModalTitle');
+  const form = document.getElementById('offerForm');
+  if (!modal || !form) return;
+
+  form.reset();
+  document.getElementById('offerFormId').value = '';
+  document.getElementById('offerFormIsActive').checked = true;
+  document.getElementById('offerFormCtaText').value = 'Explore Deals';
+  document.getElementById('offerFormCtaLink').value = '#categorySection';
+  document.getElementById('offerFormTheme').value = 'orange';
+
+  if (offerId && state.offers) {
+    const offer = state.offers.find(o => o.id === offerId);
+    if (offer) {
+      titleElem.textContent = 'Edit Offer & Scheme';
+      document.getElementById('offerFormId').value = offer.id;
+      document.getElementById('offerFormTitle').value = offer.title || '';
+      document.getElementById('offerFormSubtitle').value = offer.subtitle || '';
+      document.getElementById('offerFormBadge').value = offer.badgeText || '';
+      document.getElementById('offerFormDiscount').value = offer.discountText || '';
+      document.getElementById('offerFormDesc').value = offer.description || '';
+      document.getElementById('offerFormCoupon').value = offer.couponCode || '';
+      document.getElementById('offerFormCtaText').value = offer.ctaText || 'Explore Deals';
+      document.getElementById('offerFormCtaLink').value = offer.ctaLink || '#categorySection';
+      document.getElementById('offerFormTheme').value = offer.bgGradient || 'orange';
+      document.getElementById('offerFormOrder').value = offer.displayOrder || 1;
+      document.getElementById('offerFormIsActive').checked = Boolean(offer.isActive);
+    }
+  } else {
+    titleElem.textContent = 'Add New Offer & Promotion';
+    const nextOrder = (state.offers && state.offers.length > 0) ? (state.offers.length + 1) : 1;
+    document.getElementById('offerFormOrder').value = nextOrder;
+  }
+
+  modal.classList.add('open');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closeOfferModal() {
+  const modal = document.getElementById('offerModalOverlay');
+  if (modal) modal.classList.remove('open');
+}
+
+async function saveOffer(e) {
+  e.preventDefault();
+  const offerId = document.getElementById('offerFormId').value.trim();
+  const title = document.getElementById('offerFormTitle').value.trim();
+  const subtitle = document.getElementById('offerFormSubtitle').value.trim();
+  const badgeText = document.getElementById('offerFormBadge').value.trim();
+  const discountText = document.getElementById('offerFormDiscount').value.trim();
+  const description = document.getElementById('offerFormDesc').value.trim();
+  const couponCode = document.getElementById('offerFormCoupon').value.trim().toUpperCase();
+  const ctaText = document.getElementById('offerFormCtaText').value.trim();
+  const ctaLink = document.getElementById('offerFormCtaLink').value.trim();
+  const bgGradient = document.getElementById('offerFormTheme').value;
+  const displayOrder = parseInt(document.getElementById('offerFormOrder').value) || 0;
+  const isActive = document.getElementById('offerFormIsActive').checked;
+
+  if (!title) {
+    showToast('Please enter an offer title.', 'error');
+    return;
+  }
+
+  const payload = {
+    title, subtitle, badgeText, discountText, description,
+    couponCode, ctaText, ctaLink, bgGradient, displayOrder, isActive
+  };
+
+  try {
+    if (offerId) {
+      await apiRequest(`/api/admin/offers/${offerId}`, 'PUT', payload);
+      showToast('Offer updated successfully!');
+    } else {
+      await apiRequest('/api/admin/offers', 'POST', payload);
+      showToast('New offer created and live on storefront!');
+    }
+    closeOfferModal();
+    loadOffersTable();
+    loadDashboardStats();
+  } catch (err) {
+    showToast(err.message || 'Failed to save offer.', 'error');
+  }
+}
+
+async function toggleOfferStatus(offerId) {
+  try {
+    const res = await apiRequest(`/api/admin/offers/${offerId}/toggle`, 'POST');
+    showToast(res.message || 'Offer status updated.');
+    loadOffersTable();
+    loadDashboardStats();
+  } catch (err) {
+    showToast(err.message || 'Failed to toggle offer status.', 'error');
+  }
+}
+
+async function deleteOffer(offerId) {
+  const offer = state.offers ? state.offers.find(o => o.id === offerId) : null;
+  const name = offer ? offer.title : 'this offer';
+  if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+  try {
+    await apiRequest(`/api/admin/offers/${offerId}`, 'DELETE');
+    showToast('Offer deleted successfully.');
+    loadOffersTable();
+    loadDashboardStats();
+  } catch (err) {
+    showToast(err.message || 'Failed to delete offer.', 'error');
+  }
+}
+
+window.openOfferModal = openOfferModal;
+window.closeOfferModal = closeOfferModal;
+window.saveOffer = saveOffer;
+window.toggleOfferStatus = toggleOfferStatus;
+window.deleteOffer = deleteOffer;
+

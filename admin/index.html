@@ -102,6 +102,12 @@
           <span class="nav-badge" id="badgeNormalProductsCount">0</span>
         </button>
 
+        <button class="nav-item" data-tab="offers">
+          <i data-lucide="sparkles"></i>
+          <span>Offers &amp; Schemes</span>
+          <span class="nav-badge" id="badgeOffersCount">0</span>
+        </button>
+
         <!-- SECTION 2: THE BRANDS WE DEAL WITH (DEDICATED) -->
         <div class="nav-section-divider">BRAND PARTNERS</div>
 
@@ -224,6 +230,17 @@
                 <small class="stat-subtext">Catalog Classifications</small>
               </div>
             </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper" style="background: rgba(255, 69, 0, 0.14); color: var(--warm-orange);">
+                <i data-lucide="sparkles"></i>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Active Offers</span>
+                <h3 class="stat-value" id="statTotalOffers">0</h3>
+                <small class="stat-subtext" id="statActiveOffersSub">Storefront Deals</small>
+              </div>
+            </div>
           </div>
 
           <!-- Quick Action Buttons -->
@@ -235,6 +252,9 @@
             <div class="banner-buttons">
               <button class="btn-primary" onclick="openNormalCategoryModal()">
                 <i data-lucide="plus-circle"></i> Add Normal Category
+              </button>
+              <button class="btn-primary" style="background: #E65100;" onclick="openOfferModal()">
+                <i data-lucide="sparkles"></i> Add Offer
               </button>
               <button class="btn-primary" style="background: #2C160B;" onclick="switchTab('brands-management')">
                 <i data-lucide="tag"></i> The Brands We Deal With
@@ -712,6 +732,43 @@
           </div>
         </section>
 
+        <!-- ==================================================================
+             VIEW: OFFERS & PROMOTIONS MANAGEMENT
+             ================================================================== -->
+        <section id="view-offers" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h2>Special Offers &amp; Schemes</h2>
+              <p>Create, edit, toggle and organize promotional discount deals, coupon codes, and banner highlights shown on the storefront.</p>
+            </div>
+            <button class="btn-primary" onclick="openOfferModal()">
+              <i data-lucide="plus"></i> Add New Offer
+            </button>
+          </div>
+
+          <div class="panel-card">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="width: 60px;">Order</th>
+                    <th>Theme / Badge</th>
+                    <th>Offer Title &amp; Subtitle</th>
+                    <th>Discount / Deal</th>
+                    <th>Coupon Code</th>
+                    <th>CTA Button</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="offersTableBody">
+                  <tr><td colspan="8" class="empty-state">Loading promotional offers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
@@ -1069,6 +1126,94 @@
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeBrandProductModal()">Cancel</button>
           <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: ADD / EDIT OFFER & PROMOTION
+       ========================================================================== -->
+  <div class="modal-overlay" id="offerModalOverlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="offerModalTitle">Add New Offer</h3>
+        <button class="modal-close-icon" onclick="closeOfferModal()">&times;</button>
+      </div>
+      <form id="offerForm" onsubmit="saveOffer(event)">
+        <input type="hidden" id="offerFormId" />
+
+        <div class="form-group">
+          <label for="offerFormTitle">Offer Title *</label>
+          <input type="text" id="offerFormTitle" class="form-control" required placeholder="e.g. Mega B2B Wholesale Deal, Soldering Workstation Kits" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="offerFormBadge">Badge Tag</label>
+            <input type="text" id="offerFormBadge" class="form-control" placeholder="e.g. 🔥 SPECIAL SCHEME, ⚡ FLASH DEAL, 💎 BEST PRICE" />
+          </div>
+
+          <div class="form-group">
+            <label for="offerFormDiscount">Discount / Deal Headline</label>
+            <input type="text" id="offerFormDiscount" class="form-control" placeholder="e.g. UP TO 25% OFF, FLAT ₹300 OFF, BUY 5 GET 1" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="offerFormSubtitle">Subtitle</label>
+          <input type="text" id="offerFormSubtitle" class="form-control" placeholder="e.g. Capacitors, Relays, ICs & Connectors" />
+        </div>
+
+        <div class="form-group">
+          <label for="offerFormDesc">Offer Description</label>
+          <textarea id="offerFormDesc" class="form-control" rows="2" placeholder="Brief details about the promotional scheme, warranty, or bulk terms..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="offerFormCoupon">Coupon Code (Optional)</label>
+            <input type="text" id="offerFormCoupon" class="form-control" placeholder="e.g. BULK25, FESTIVE2026" style="text-transform: uppercase;" />
+          </div>
+
+          <div class="form-group">
+            <label for="offerFormTheme">Theme Color Style</label>
+            <select id="offerFormTheme" class="form-control">
+              <option value="orange">Warm Sunset (Orange & Amber)</option>
+              <option value="gold">Golden Glow (Honey Yellow)</option>
+              <option value="emerald">Emerald Premium (Green)</option>
+              <option value="royal">Royal Sapphire (Blue)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="offerFormCtaText">CTA Button Text</label>
+            <input type="text" id="offerFormCtaText" class="form-control" value="Explore Deals" placeholder="e.g. View Catalog, Contact For Bulk" />
+          </div>
+
+          <div class="form-group">
+            <label for="offerFormCtaLink">CTA Target Section / Link</label>
+            <input type="text" id="offerFormCtaLink" class="form-control" value="#categorySection" placeholder="e.g. #categorySection, #contactSection" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="offerFormOrder">Display Order</label>
+            <input type="number" id="offerFormOrder" class="form-control" value="1" min="0" />
+          </div>
+
+          <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.8rem;">
+            <input type="checkbox" id="offerFormIsActive" checked style="width: 18px; height: 18px; cursor: pointer;" />
+            <label for="offerFormIsActive" style="margin-bottom: 0; cursor: pointer; font-weight: 600;">Active on Storefront</label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeOfferModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Save Offer</button>
         </div>
       </form>
     </div>
