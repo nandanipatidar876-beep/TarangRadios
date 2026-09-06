@@ -465,23 +465,23 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         conn = get_db()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT COUNT(*) FROM brands")
-        total_brands = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) as cnt FROM brands")
+        total_brands = cursor.fetchone()["cnt"]
 
-        cursor.execute("SELECT COUNT(*) FROM categories WHERE brand_id IS NULL OR brand_id = ''")
-        total_normal_cats = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) as cnt FROM categories WHERE brand_id IS NULL OR brand_id = ''")
+        total_normal_cats = cursor.fetchone()["cnt"]
 
-        cursor.execute("SELECT COUNT(*) FROM categories WHERE brand_id IS NOT NULL AND brand_id != ''")
-        total_brand_cats = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) as cnt FROM categories WHERE brand_id IS NOT NULL AND brand_id != ''")
+        total_brand_cats = cursor.fetchone()["cnt"]
 
-        cursor.execute("SELECT COUNT(*) FROM subcategories")
-        total_subs = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) as cnt FROM subcategories")
+        total_subs = cursor.fetchone()["cnt"]
 
-        cursor.execute("SELECT COUNT(*), SUM(CASE WHEN in_stock = 1 THEN 1 ELSE 0 END), AVG(price) FROM products")
+        cursor.execute("SELECT COUNT(*) as total, SUM(CASE WHEN in_stock = 1 THEN 1 ELSE 0 END) as in_stock, AVG(price) as avg_p FROM products")
         row = cursor.fetchone()
-        total_prods = row[0] or 0
-        in_stock_prods = row[1] or 0
-        avg_price = round(row[2] or 0, 2)
+        total_prods = row["total"] or 0
+        in_stock_prods = row["in_stock"] or 0
+        avg_price = round(float(row["avg_p"] or 0), 2)
 
         cursor.execute("""
             SELECT p.id, p.sku, p.name, p.price, p.subcategory, p.in_stock, p.image, COALESCE(b.name, p.brand, '') as brand_name
