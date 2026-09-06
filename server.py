@@ -218,14 +218,6 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
                 return self.send_json({"error": "Unauthorized"}, 401)
             return self.send_json({"code": get_price_access_code()})
 
-        # Offers endpoints
-        if path == "/api/offers":
-            return self.handle_get_offers(active_only=True)
-        if path == "/api/admin/offers":
-            if not authenticate_request(self.headers):
-                return self.send_json({"error": "Unauthorized"}, 401)
-            return self.handle_get_offers(active_only=False)
-
         # Fallback to static files
         return super().do_GET()
 
@@ -296,13 +288,6 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/import/bulk-products":
             return self.handle_bulk_product_import()
 
-        # Offers Management
-        if path == "/api/admin/offers":
-            return self.handle_create_offer()
-        if path.startswith("/api/admin/offers/") and path.endswith("/toggle"):
-            offer_id = path.split("/")[4]
-            return self.handle_toggle_offer(offer_id)
-
         self.send_json({"error": "Not Found"}, 404)
 
     # -----------------------------------------------------------------------
@@ -331,10 +316,6 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
             prod_id = path.split("/")[3]
             return self.handle_update_product(prod_id)
 
-        if path.startswith("/api/admin/offers/"):
-            offer_id = path.split("/")[4]
-            return self.handle_update_offer(offer_id)
-
         self.send_json({"error": "Not Found"}, 404)
 
     # -----------------------------------------------------------------------
@@ -362,10 +343,6 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         if path.startswith("/api/products/"):
             prod_id = path.split("/")[3]
             return self.handle_delete_product(prod_id)
-
-        if path.startswith("/api/admin/offers/"):
-            offer_id = path.split("/")[4]
-            return self.handle_delete_offer(offer_id)
 
         self.send_json({"error": "Not Found"}, 404)
 
@@ -473,34 +450,12 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
                 "reviews": int(p["reviews"] or 0)
             })
 
-        # Active Offers
-        cursor.execute("SELECT * FROM offers WHERE is_active = 1 ORDER BY display_order ASC, created_at DESC")
-        offer_rows = cursor.fetchall()
-        offers = []
-        for o in offer_rows:
-            offers.append({
-                "id": o["id"],
-                "title": o["title"],
-                "subtitle": o["subtitle"] or "",
-                "badgeText": o["badge_text"] or "",
-                "discountText": o["discount_text"] or "",
-                "description": o["description"] or "",
-                "couponCode": o["coupon_code"] or "",
-                "ctaText": o["cta_text"] or "Explore Deals",
-                "ctaLink": o["cta_link"] or "#categorySection",
-                "bgGradient": o["bg_gradient"] or "orange",
-                "bannerImage": o["banner_image"] or "",
-                "isActive": bool(o["is_active"]),
-                "displayOrder": int(o["display_order"] or 0)
-            })
-
         conn.close()
         return self.send_json({
             "brands": brands,
             "categories": categories,
             "brandCategories": brand_categories,
-            "products": products,
-            "offers": offers
+            "products": products
         })
 
     # -----------------------------------------------------------------------
@@ -536,11 +491,6 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         """)
         recent = [dict(r) for r in cursor.fetchall()]
 
-        cursor.execute("SELECT COUNT(*), SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) FROM offers")
-        offer_stat_row = cursor.fetchone()
-        total_offers = offer_stat_row[0] or 0
-        active_offers = offer_stat_row[1] or 0
-
         conn.close()
         return self.send_json({
             "totalBrands": total_brands,
@@ -552,9 +502,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
             "inStockProducts": in_stock_prods,
             "outOfStockProducts": total_prods - in_stock_prods,
             "avgPrice": avg_price,
-            "recentProducts": recent,
-            "totalOffers": total_offers,
-            "activeOffers": active_offers
+            "recentProducts": recent
         })
 
     # -----------------------------------------------------------------------
@@ -1565,140 +1513,9 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
             "code": new_code
         })
 
-    # -----------------------------------------------------------------------
-    # OFFERS & PROMOTIONS MANAGEMENT CRUD
-    # -----------------------------------------------------------------------
-    def handle_get_offers(self, active_only=True):
-        conn = get_db()
-        cursor = conn.cursor()
-        sql = "SELECT * FROM offers"
-        if active_only:
-            sql += " WHERE is_active = 1"
-        sql += " ORDER BY display_order ASC, created_at DESC"
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        conn.close()
 
-        offers = []
-        for o in rows:
-            offers.append({
-                "id": o["id"],
-                "title": o["title"],
-                "subtitle": o["subtitle"] or "",
-                "badgeText": o["badge_text"] or "",
-                "discountText": o["discount_text"] or "",
-                "description": o["description"] or "",
-                "couponCode": o["coupon_code"] or "",
-                "ctaText": o["cta_text"] or "Explore Deals",
-                "ctaLink": o["cta_link"] or "#categorySection",
-                "bgGradient": o["bg_gradient"] or "orange",
-                "bannerImage": o["banner_image"] or "",
-                "isActive": bool(o["is_active"]),
-                "displayOrder": int(o["display_order"] or 0),
-                "createdAt": o.get("created_at", ""),
-                "updatedAt": o.get("updated_at", "")
-            })
-        return self.send_json(offers)
 
-    def handle_create_offer(self):
-        data = self.read_json_body()
-        title = data.get("title", "").strip()
-        if not title:
-            return self.send_json({"error": "Offer title is required."}, 400)
 
-        offer_id = data.get("id", "").strip() or f"offer-{uuid.uuid4().hex[:8]}"
-        subtitle = data.get("subtitle", "").strip()
-        badge_text = data.get("badgeText", "").strip()
-        discount_text = data.get("discountText", "").strip()
-        description = data.get("description", "").strip()
-        coupon_code = data.get("couponCode", "").strip()
-        cta_text = data.get("ctaText", "Explore Deals").strip() or "Explore Deals"
-        cta_link = data.get("ctaLink", "#categorySection").strip() or "#categorySection"
-        bg_gradient = data.get("bgGradient", "orange").strip() or "orange"
-        banner_image = data.get("bannerImage", "").strip()
-        is_active = 1 if data.get("isActive", True) else 0
-        display_order = int(data.get("displayOrder", 0))
-        now = datetime.now().isoformat()
-
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO offers (
-                id, title, subtitle, badge_text, discount_text, description,
-                coupon_code, cta_text, cta_link, bg_gradient, banner_image,
-                is_active, display_order, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            offer_id, title, subtitle, badge_text, discount_text, description,
-            coupon_code, cta_text, cta_link, bg_gradient, banner_image,
-            is_active, display_order, now, now
-        ))
-        conn.commit()
-        conn.close()
-
-        return self.send_json({"success": True, "id": offer_id, "message": "Offer created successfully."})
-
-    def handle_update_offer(self, offer_id):
-        data = self.read_json_body()
-        title = data.get("title", "").strip()
-        if not title:
-            return self.send_json({"error": "Offer title is required."}, 400)
-
-        subtitle = data.get("subtitle", "").strip()
-        badge_text = data.get("badgeText", "").strip()
-        discount_text = data.get("discountText", "").strip()
-        description = data.get("description", "").strip()
-        coupon_code = data.get("couponCode", "").strip()
-        cta_text = data.get("ctaText", "Explore Deals").strip() or "Explore Deals"
-        cta_link = data.get("ctaLink", "#categorySection").strip() or "#categorySection"
-        bg_gradient = data.get("bgGradient", "orange").strip() or "orange"
-        banner_image = data.get("bannerImage", "").strip()
-        is_active = 1 if data.get("isActive", True) else 0
-        display_order = int(data.get("displayOrder", 0))
-        now = datetime.now().isoformat()
-
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE offers SET
-                title = ?, subtitle = ?, badge_text = ?, discount_text = ?, description = ?,
-                coupon_code = ?, cta_text = ?, cta_link = ?, bg_gradient = ?, banner_image = ?,
-                is_active = ?, display_order = ?, updated_at = ?
-            WHERE id = ?
-        """, (
-            title, subtitle, badge_text, discount_text, description,
-            coupon_code, cta_text, cta_link, bg_gradient, banner_image,
-            is_active, display_order, now, offer_id
-        ))
-        conn.commit()
-        conn.close()
-
-        return self.send_json({"success": True, "message": "Offer updated successfully."})
-
-    def handle_delete_offer(self, offer_id):
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM offers WHERE id = ?", (offer_id,))
-        conn.commit()
-        conn.close()
-        return self.send_json({"success": True, "message": "Offer deleted successfully."})
-
-    def handle_toggle_offer(self, offer_id):
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT is_active, title FROM offers WHERE id = ?", (offer_id,))
-        offer = cursor.fetchone()
-        if not offer:
-            conn.close()
-            return self.send_json({"error": "Offer not found."}, 404)
-
-        new_status = 0 if offer["is_active"] == 1 else 1
-        now = datetime.now().isoformat()
-        cursor.execute("UPDATE offers SET is_active = ?, updated_at = ? WHERE id = ?", (new_status, now, offer_id))
-        conn.commit()
-        conn.close()
-        status_label = "Activated" if new_status == 1 else "Deactivated"
-        return self.send_json({"success": True, "isActive": bool(new_status), "message": f"Offer '{offer['title']}' {status_label}."})
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
