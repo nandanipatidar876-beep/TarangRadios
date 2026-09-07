@@ -930,9 +930,83 @@ document.addEventListener('DOMContentLoaded', async () => {
     const displayImg = document.getElementById('zoomedImageDisplay');
     const displayCaption = document.getElementById('zoomedImageCaption');
     const zoomAddToCartBtn = document.getElementById('zoomAddToCartBtn');
+    const skuBadge = document.getElementById('productDetailSkuBadge');
+    const priceRow = document.getElementById('productDetailPriceRow');
+    const descEl = document.getElementById('productDetailDescription');
+    const specsContainer = document.getElementById('productDetailSpecsContainer');
 
-    if (displayImg) displayImg.src = formatImageUrl(imgUrl);
-    if (displayCaption) displayCaption.textContent = caption || '';
+    const p = (productId && window.TARANG_DATA.products) 
+      ? window.TARANG_DATA.products.find(item => item.id === productId || item.sku === productId) 
+      : null;
+
+    if (displayImg) {
+      displayImg.src = formatImageUrl(p ? p.image : imgUrl);
+      displayImg.alt = p ? p.name : (caption || 'Product View');
+    }
+
+    if (displayCaption) {
+      displayCaption.textContent = p ? p.name : (caption || '');
+    }
+
+    if (skuBadge) {
+      const codeVal = p ? (p.sku || p.id) : '';
+      if (codeVal) {
+        skuBadge.style.display = 'inline-block';
+        skuBadge.textContent = `PRODUCT CODE: ${codeVal}`;
+      } else {
+        skuBadge.style.display = 'none';
+      }
+    }
+
+    if (priceRow) {
+      if (p && typeof p.price !== 'undefined') {
+        priceRow.innerHTML = formatPriceHtml(p.price);
+        priceRow.style.display = 'block';
+      } else {
+        priceRow.style.display = 'none';
+      }
+    }
+
+    if (descEl) {
+      if (p && p.description) {
+        descEl.textContent = p.description;
+        descEl.style.display = 'block';
+      } else {
+        descEl.style.display = 'none';
+      }
+    }
+
+    if (specsContainer) {
+      let specsObj = null;
+      if (p && p.specs) {
+        try {
+          specsObj = (typeof p.specs === 'string') ? JSON.parse(p.specs) : p.specs;
+        } catch (e) {
+          specsObj = null;
+        }
+      }
+
+      if (specsObj && Object.keys(specsObj).length > 0) {
+        let specsHtml = '<div class="product-specs-card"><h5 class="product-specs-title">Technical Specifications</h5><div class="product-specs-grid">';
+        for (const [key, val] of Object.entries(specsObj)) {
+          // Do not display duplicate brand or manufacturer field
+          if (/brand|manufacturer/i.test(key)) continue;
+          specsHtml += `
+            <div class="product-spec-row">
+              <span class="product-spec-key">${key}</span>
+              <span class="product-spec-val">${val}</span>
+            </div>
+          `;
+        }
+        specsHtml += '</div></div>';
+        specsContainer.innerHTML = specsHtml;
+        specsContainer.style.display = 'block';
+      } else {
+        specsContainer.innerHTML = '';
+        specsContainer.style.display = 'none';
+      }
+    }
+
     if (zoomAddToCartBtn) {
       zoomAddToCartBtn.style.display = productId ? 'inline-flex' : 'none';
       zoomAddToCartBtn.innerHTML = `
@@ -942,6 +1016,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (modal) modal.classList.add('open');
   };
+
 
   window.addZoomProductToCart = () => {
     if (!currentZoomProductId) return;

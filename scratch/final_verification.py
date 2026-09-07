@@ -57,7 +57,7 @@ ingco_brand = next((b for b in public_data.get('brands', []) if b.get('id') == '
 assert ingco_brand is not None, "INGCO brand should exist in public-data brands"
 
 ingco_products = [p for p in public_data.get('products', []) if p.get('brandId') == 'brand_ingco' or p.get('brand_id') == 'brand_ingco' or p.get('brand') == 'INGCO']
-assert len(ingco_products) == 5, f"Expected 5 INGCO products, found {len(ingco_products)}"
+assert len(ingco_products) >= 25, f"Expected at least 25 INGCO products, found {len(ingco_products)}"
 
 # Ensure NONE of INGCO products are in main categories
 main_categories = [c for c in public_data.get('categories', []) if not (c.get('brandId') or c.get('brand_id'))]
@@ -70,8 +70,10 @@ for p in ingco_products:
     cat_id = p.get('categoryId') or p.get('category_id') or p.get('category')
     assert cat_id not in {c['id'] for c in main_categories}, f"Product {p['name']} found in main categories!"
     assert cat_id in ingco_category_ids, f"Product {p['name']} is not in an INGCO brand category!"
+    assert p.get('image', '').startswith('https://res.cloudinary.com/'), f"Product {p['name']} image is not from Cloudinary! URL: {p.get('image')}"
 
-print(f"OK INGCO Integration check passed: {len(ingco_products)} INGCO products verified, strictly isolated from main categories and placed in brandCategories.")
+print(f"OK INGCO Integration check passed: {len(ingco_products)} INGCO products verified, all with permanent Cloudinary HTTPS URLs, strictly isolated from main categories.")
+
 
 
 

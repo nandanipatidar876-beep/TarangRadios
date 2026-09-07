@@ -687,20 +687,31 @@
     </div>
   </div>
 
-  <!-- Image Zoom Lightbox Modal -->
+  <!-- Product Details & Image Zoom Modal -->
   <div id="imageZoomModal" class="image-zoom-modal">
-    <div class="image-zoom-content">
+    <div class="image-zoom-content product-detail-modal-box">
       <button class="image-zoom-close" id="closeZoomModalBtn">&times;</button>
-      <img id="zoomedImageDisplay" src="" alt="Zoomed View" />
-      <div class="image-zoom-footer">
-        <div id="zoomedImageCaption" class="image-zoom-caption"></div>
-        <button id="zoomAddToCartBtn" class="zoom-add-to-cart-btn" onclick="window.addZoomProductToCart()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-          <span>Add to Cart</span>
-        </button>
+      <div class="product-detail-modal-grid">
+        <div class="product-detail-media-col">
+          <img id="zoomedImageDisplay" src="" alt="Product View" />
+        </div>
+        <div class="product-detail-info-col">
+          <div id="productDetailSkuBadge" class="product-detail-sku-badge"></div>
+          <h3 id="zoomedImageCaption" class="product-detail-title"></h3>
+          <div id="productDetailPriceRow" class="product-detail-price-row"></div>
+          <p id="productDetailDescription" class="product-detail-description"></p>
+          <div id="productDetailSpecsContainer" class="product-detail-specs-container"></div>
+          <div class="product-detail-actions">
+            <button id="zoomAddToCartBtn" class="zoom-add-to-cart-btn" onclick="window.addZoomProductToCart()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+              <span>Add to Cart</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+
 
   <!-- ==========================================================================
        MODAL: PRICE ACCESS PASSCODE PROTECTION

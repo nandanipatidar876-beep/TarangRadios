@@ -3614,6 +3614,161 @@ footer span {
   text-align: center;
 }
 
+/* Product Detail Modal Upgrade (Clean Luxury Design) */
+.product-detail-modal-box {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 92vw;
+  max-width: 860px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(226, 125, 96, 0.25);
+  display: block;
+}
+
+.product-detail-modal-box .image-zoom-close {
+  top: 14px;
+  right: 14px;
+}
+
+.product-detail-modal-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .product-detail-modal-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.product-detail-media-col {
+  background: #F8F9FA;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #EFEFEF;
+}
+
+.product-detail-media-col img {
+  max-width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  border: none;
+  box-shadow: none;
+  border-radius: 8px;
+  cursor: default;
+}
+
+.product-detail-media-col img:hover {
+  transform: none;
+}
+
+.product-detail-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.product-detail-sku-badge {
+  display: inline-block;
+  align-self: flex-start;
+  background: #FFF3E0;
+  color: #D35400;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #FFE0B2;
+}
+
+.product-detail-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #2C3E50;
+  line-height: 1.35;
+  margin: 0;
+  text-align: left;
+}
+
+.product-detail-price-row {
+  margin-top: 0.2rem;
+}
+
+.product-detail-price-row .subcat-product-price {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--warm-orange);
+}
+
+.product-detail-description {
+  font-size: 0.92rem;
+  color: #555555;
+  line-height: 1.55;
+  margin: 0.5rem 0;
+}
+
+.product-specs-card {
+  background: #FAFAFA;
+  border: 1px solid #EEEEEE;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin-top: 0.5rem;
+}
+
+.product-specs-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #777777;
+  margin-bottom: 0.75rem;
+}
+
+.product-specs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.product-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.86rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px dashed #E5E5E5;
+}
+
+.product-spec-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.product-spec-key {
+  color: #666666;
+  font-weight: 600;
+}
+
+.product-spec-val {
+  color: #222222;
+  font-weight: 700;
+  text-align: right;
+}
+
+.product-detail-actions {
+  margin-top: 1rem;
+}
+
+
 /* ==========================================================================
    SHOPPING CART SYSTEM & DRAWER STYLING
    ========================================================================== */
