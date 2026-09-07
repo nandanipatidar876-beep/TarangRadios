@@ -13,6 +13,8 @@ import uuid
 import hashlib
 import secrets
 import urllib.parse
+import time
+import math
 from datetime import datetime, timedelta
 
 from db import get_db, get_status as get_db_status
@@ -24,6 +26,37 @@ UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 STATIC_DIR = os.path.dirname(__file__)
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# ---------------------------------------------------------------------------
+# High-Performance In-Memory Cache with Immediate Mutation Invalidation
+# ---------------------------------------------------------------------------
+class APICache:
+    def __init__(self):
+        self._store = {}
+
+    def get(self, key):
+        entry = self._store.get(key)
+        if entry and time.time() < entry["expires"]:
+            return entry["data"]
+        if entry:
+            self._store.pop(key, None)
+        return None
+
+    def set(self, key, data, ttl_seconds=60):
+        self._store[key] = {
+            "data": data,
+            "expires": time.time() + ttl_seconds
+        }
+
+    def invalidate(self, prefix=None):
+        if prefix:
+            keys_to_del = [k for k in self._store if k.startswith(prefix)]
+            for k in keys_to_del:
+                self._store.pop(k, None)
+        else:
+            self._store.clear()
+
+api_cache = APICache()
 
 # ---------------------------------------------------------------------------
 # Password & Hash Helpers
@@ -70,8 +103,69 @@ def get_price_access_code() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Authentication Session Validation
+# Brute-Force Rate Limiter for Admin Authentication
 # ---------------------------------------------------------------------------
+class LoginRateLimiter:
+    def __init__(self, max_attempts=5, lockout_seconds=900): # 15 minutes lockout
+        self.max_attempts = max_attempts
+        self.lockout_seconds = lockout_seconds
+        self._failures = {} # ip -> {"count": int, "lockout_until": float, "first_fail": float}
+
+    def get_client_ip(self, handler):
+        forwarded = handler.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        if handler.client_address:
+            return handler.client_address[0]
+        return "127.0.0.1"
+
+    def is_locked(self, ip: str) -> tuple[bool, int]:
+        entry = self._failures.get(ip)
+        if not entry:
+            return False, 0
+        now = time.time()
+        if entry.get("lockout_until") and now < entry["lockout_until"]:
+            remaining = int(math.ceil(entry["lockout_until"] - now))
+            return True, remaining
+        if entry.get("lockout_until") and now >= entry["lockout_until"]:
+            self._failures.pop(ip, None)
+            return False, 0
+        return False, 0
+
+    def record_failure(self, ip: str) -> tuple[int, int]:
+        """Returns (failed_count, remaining_lockout_seconds_if_locked)"""
+        now = time.time()
+        entry = self._failures.get(ip)
+        if not entry or (now - entry.get("first_fail", now)) > 600: # 10 min window
+            entry = {"count": 1, "first_fail": now, "lockout_until": 0}
+        else:
+            entry["count"] += 1
+
+        if entry["count"] >= self.max_attempts:
+            entry["lockout_until"] = now + self.lockout_seconds
+            self._failures[ip] = entry
+            return entry["count"], self.lockout_seconds
+
+        self._failures[ip] = entry
+        return entry["count"], 0
+
+    def record_success(self, ip: str):
+        self._failures.pop(ip, None)
+
+login_limiter = LoginRateLimiter(max_attempts=5, lockout_seconds=900)
+
+# ---------------------------------------------------------------------------
+# Authentication Session Validation with Fast In-Memory Cache
+# ---------------------------------------------------------------------------
+_session_auth_cache = {}
+
+def invalidate_session_cache(token=None):
+    global _session_auth_cache
+    if token:
+        _session_auth_cache.pop(token, None)
+    else:
+        _session_auth_cache.clear()
+
 def authenticate_request(headers):
     auth_header = headers.get("Authorization", "")
     token = None
@@ -83,6 +177,12 @@ def authenticate_request(headers):
 
     if not token:
         return None
+
+    # Check fast in-memory session cache (60s TTL)
+    now_ts = time.time()
+    cached_session = _session_auth_cache.get(token)
+    if cached_session and now_ts < cached_session["expires"]:
+        return cached_session["user"]
 
     conn = get_db()
     cursor = conn.cursor()
@@ -101,12 +201,17 @@ def authenticate_request(headers):
     if datetime.fromisoformat(row["expires_at"]) < datetime.now():
         return None
 
-    return {
+    user_info = {
         "token": row["token"],
         "id": row["id"],
         "username": row["username"],
         "name": row["name"]
     }
+    _session_auth_cache[token] = {
+        "user": user_info,
+        "expires": now_ts + 60
+    }
+    return user_info
 
 # ---------------------------------------------------------------------------
 # Request Handler
@@ -125,15 +230,39 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_cors_headers()
         self.end_headers()
 
-    def send_json(self, data, status=200):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("X-XSS-Protection", "1; mode=block")
+        super().end_headers()
+
+    def send_json(self, data, status=200, cookies=None):
         try:
             body = json.dumps(data, ensure_ascii=False).encode("utf-8")
             self.send_response(status)
             self.send_cors_headers()
+            if cookies:
+                for c in cookies:
+                    self.send_header("Set-Cookie", c)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
+
+    def send_raw_json(self, body_bytes, status=200):
+        try:
+            self.send_response(status)
+            self.send_cors_headers()
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body_bytes)))
+            self.end_headers()
+            self.wfile.write(body_bytes)
         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
             pass
 
@@ -176,11 +305,16 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
                 return self.send_json({"error": "Unauthorized"}, 401)
             return self.send_json({"authenticated": True, "user": user})
 
-        # Admin stats
+        # Admin stats & settings
         if path == "/api/admin/stats":
             if not authenticate_request(self.headers):
                 return self.send_json({"error": "Unauthorized"}, 401)
             return self.handle_get_admin_stats()
+
+        if path == "/api/admin/price-code":
+            if not authenticate_request(self.headers):
+                return self.send_json({"error": "Unauthorized"}, 401)
+            return self.send_json({"code": get_price_access_code()})
 
         # Brands endpoints
         if path == "/api/brands":
@@ -350,6 +484,10 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
     # PUBLIC CENTRALIZED CATALOG DATA
     # -----------------------------------------------------------------------
     def handle_get_public_data(self):
+        cached_bytes = api_cache.get("public_data_bytes")
+        if cached_bytes:
+            return self.send_raw_json(cached_bytes)
+
         conn = get_db()
         cursor = conn.cursor()
 
@@ -451,17 +589,24 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
             })
 
         conn.close()
-        return self.send_json({
+        result = {
             "brands": brands,
             "categories": categories,
             "brandCategories": brand_categories,
             "products": products
-        })
+        }
+        body_bytes = json.dumps(result, ensure_ascii=False).encode("utf-8")
+        api_cache.set("public_data_bytes", body_bytes, ttl_seconds=120)
+        return self.send_raw_json(body_bytes)
 
     # -----------------------------------------------------------------------
     # ADMIN DASHBOARD STATS
     # -----------------------------------------------------------------------
     def handle_get_admin_stats(self):
+        cached_bytes = api_cache.get("admin_stats_bytes")
+        if cached_bytes:
+            return self.send_raw_json(cached_bytes)
+
         conn = get_db()
         cursor = conn.cursor()
 
@@ -492,7 +637,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         recent = [dict(r) for r in cursor.fetchall()]
 
         conn.close()
-        return self.send_json({
+        stats = {
             "totalBrands": total_brands,
             "totalNormalCategories": total_normal_cats,
             "totalBrandCategories": total_brand_cats,
@@ -503,7 +648,10 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
             "outOfStockProducts": total_prods - in_stock_prods,
             "avgPrice": avg_price,
             "recentProducts": recent
-        })
+        }
+        body_bytes = json.dumps(stats, ensure_ascii=False).encode("utf-8")
+        api_cache.set("admin_stats_bytes", body_bytes, ttl_seconds=60)
+        return self.send_raw_json(body_bytes)
 
     # -----------------------------------------------------------------------
     # 'THE BRANDS WE DEAL WITH' CRUD & HIERARCHY
@@ -550,6 +698,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         """, (brand_id, name, display_order, is_enabled, now, now))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
 
         return self.send_json({"success": True, "id": brand_id, "name": name, "message": f"Brand '{name}' added successfully"}, 201)
 
@@ -583,6 +732,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": f"Brand '{name}' updated successfully"})
 
     def handle_delete_brand(self, brand_id):
@@ -605,6 +755,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         cursor.execute("DELETE FROM brands WHERE id = ?", (brand_id,))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": f"Brand '{brand['name']}' and its catalog deleted."})
 
     def handle_toggle_brand(self, brand_id):
@@ -621,6 +772,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         cursor.execute("UPDATE brands SET is_enabled = ?, updated_at = ? WHERE id = ?", (new_status, now, brand_id))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         status_text = "Enabled" if new_status == 1 else "Disabled"
         return self.send_json({"success": True, "isEnabled": new_status, "message": f"Brand '{brand['name']}' {status_text}."})
 
@@ -633,6 +785,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
             cursor.execute("UPDATE brands SET display_order = ? WHERE id = ?", (idx, bid))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": "Brands reordered successfully."})
 
     def handle_get_brands_hierarchy(self, target_brand_id=None):
@@ -795,6 +948,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "id": cat_id, "message": f"Category '{title}' created successfully"}, 201)
 
     def handle_update_category(self, cat_id):
@@ -840,6 +994,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": f"Category '{title}' updated successfully"})
 
     def handle_delete_category(self, cat_id):
@@ -850,6 +1005,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         cursor.execute("DELETE FROM products WHERE category_id = ?", (cat_id,))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": "Category and all associated items deleted"})
 
     def handle_reorder_categories(self):
@@ -861,6 +1017,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
             cursor.execute("UPDATE categories SET display_order = ? WHERE id = ?", (idx, cid))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": "Categories reordered"})
 
     # -----------------------------------------------------------------------
@@ -927,6 +1084,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         """, (sub_id, category_id, name, display_order))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "id": sub_id, "message": f"Subcategory '{name}' created successfully"}, 201)
 
     def handle_update_subcategory(self, sub_id):
@@ -964,6 +1122,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": f"Subcategory '{name}' updated successfully"})
 
     def handle_delete_subcategory(self, sub_id):
@@ -972,6 +1131,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         cursor.execute("DELETE FROM subcategories WHERE id = ?", (sub_id,))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": "Subcategory deleted successfully"})
 
     def handle_reorder_subcategories(self):
@@ -983,6 +1143,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
             cursor.execute("UPDATE subcategories SET display_order = ? WHERE id = ?", (idx, sid))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": "Subcategories reordered"})
 
     # -----------------------------------------------------------------------
@@ -992,52 +1153,76 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         brand_id = query.get("brand_id", [None])[0]
         cat_id = query.get("category_id", [None])[0]
         subcat = query.get("subcategory", [None])[0]
-        search = query.get("q", [None])[0]
+        search = query.get("q", [None])[0] or query.get("search", [None])[0]
         sort = query.get("sort", ["date_desc"])[0]
         catalog_type = query.get("type", [None])[0]
+        page_param = query.get("page", [None])[0]
+        limit_param = query.get("limit", [None])[0]
 
-        sql = """
-            SELECT p.*, c.title as category_title, b.name as brand_name
-            FROM products p
-            LEFT JOIN categories c ON p.category_id = c.id
-            LEFT JOIN brands b ON p.brand_id = b.id
-            WHERE 1=1
-        """
+        is_paginated = page_param is not None
+
+        base_where = " WHERE 1=1"
         params = []
 
         if catalog_type == "normal" or brand_id == "normal" or brand_id == "none":
-            sql += " AND (p.brand_id IS NULL OR p.brand_id = '')"
+            base_where += " AND (p.brand_id IS NULL OR p.brand_id = '')"
         elif brand_id and brand_id != "all":
-            sql += " AND p.brand_id = ?"
+            base_where += " AND p.brand_id = ?"
             params.append(brand_id)
 
         if cat_id and cat_id != "all":
-            sql += " AND p.category_id = ?"
+            base_where += " AND p.category_id = ?"
             params.append(cat_id)
 
         if subcat and subcat != "all":
-            sql += " AND p.subcategory = ?"
+            base_where += " AND p.subcategory = ?"
             params.append(subcat)
 
         if search:
             search_param = f"%{search}%"
-            sql += " AND (p.name LIKE ? OR p.sku LIKE ? OR p.brand LIKE ? OR p.description LIKE ?)"
+            base_where += " AND (p.name LIKE ? OR p.sku LIKE ? OR p.brand LIKE ? OR p.description LIKE ?)"
             params.extend([search_param, search_param, search_param, search_param])
 
+        order_by = " ORDER BY p.created_at DESC"
         if sort == "price_asc":
-            sql += " ORDER BY p.price ASC"
+            order_by = " ORDER BY p.price ASC"
         elif sort == "price_desc":
-            sql += " ORDER BY p.price DESC"
+            order_by = " ORDER BY p.price DESC"
         elif sort == "name_asc":
-            sql += " ORDER BY p.name ASC"
+            order_by = " ORDER BY p.name ASC"
         elif sort == "name_desc":
-            sql += " ORDER BY p.name DESC"
-        else:
-            sql += " ORDER BY p.created_at DESC"
+            order_by = " ORDER BY p.name DESC"
 
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(sql, params)
+
+        total_count = 0
+        if is_paginated:
+            count_sql = f"SELECT COUNT(*) as total FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id{base_where}"
+            cursor.execute(count_sql, params)
+            cnt_row = cursor.fetchone()
+            total_count = cnt_row["total"] if cnt_row else 0
+
+        sql = f"""
+            SELECT p.*, c.title as category_title, b.name as brand_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            LEFT JOIN brands b ON p.brand_id = b.id
+            {base_where}
+            {order_by}
+        """
+
+        exec_params = list(params)
+        page = 1
+        limit = 25
+        if is_paginated:
+            page = max(1, int(page_param)) if page_param and page_param.isdigit() else 1
+            limit = max(1, min(200, int(limit_param))) if limit_param and limit_param.isdigit() else 25
+            offset = (page - 1) * limit
+            sql += " LIMIT ? OFFSET ?"
+            exec_params.extend([limit, offset])
+
+        cursor.execute(sql, exec_params)
         rows = cursor.fetchall()
         conn.close()
 
@@ -1048,6 +1233,16 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
                 try: d["specs"] = json.loads(d["specs"])
                 except Exception: d["specs"] = {}
             products.append(d)
+
+        if is_paginated:
+            return self.send_json({
+                "products": products,
+                "items": products,
+                "total": total_count,
+                "page": page,
+                "limit": limit,
+                "totalPages": math.ceil(total_count / limit) if limit > 0 else 1
+            })
 
         return self.send_json(products)
 
@@ -1102,6 +1297,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         """, (prod_id, sku, name, brand_id, brand_name, category_id, subcategory, price, badge, in_stock, image, description, specs_json, rating, reviews, now, now))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
 
         return self.send_json({"success": True, "id": prod_id, "message": f"Product '{name}' created successfully"}, 201)
 
@@ -1157,6 +1353,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         """, (sku, name, brand_id, brand_name, category_id, subcategory, price, badge, in_stock, image, description, specs_json, rating, reviews, now, prod_id))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
 
         return self.send_json({"success": True, "message": f"Product '{name}' updated successfully"})
 
@@ -1166,6 +1363,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         cursor.execute("DELETE FROM products WHERE id = ?", (prod_id,))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
         return self.send_json({"success": True, "message": "Product deleted successfully"})
 
     def handle_duplicate_product(self, prod_id):
@@ -1188,6 +1386,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         """, (new_id, new_sku, new_name, original["brand_id"], original["brand"], original["category_id"], original["subcategory"], original["price"], original["badge"], original["in_stock"], original["image"], original["description"], original["specs"], original["rating"], original["reviews"], now, now))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
 
         return self.send_json({"success": True, "id": new_id, "message": f"Product '{new_name}' created successfully"}, 201)
 
@@ -1218,6 +1417,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         cursor.execute("UPDATE products SET price = ?, updated_at = ? WHERE id = ?", (price, now, prod_id))
         conn.commit()
         conn.close()
+        api_cache.invalidate()
 
         return self.send_json({
             "success": True,
@@ -1381,6 +1581,7 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         conn.commit()
         conn.close()
+        api_cache.invalidate()
 
         return self.send_json({
             "success": True,
@@ -1389,6 +1590,14 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         })
 
     def handle_auth_login(self):
+        client_ip = login_limiter.get_client_ip(self)
+        locked, remaining = login_limiter.is_locked(client_ip)
+        if locked:
+            remaining_mins = max(1, math.ceil(remaining / 60))
+            return self.send_json({
+                "error": f"Too many failed login attempts. Account temporarily locked for security. Please try again in {remaining_mins} minute(s)."
+            }, 429)
+
         data = self.read_json_body()
         username = (data.get("username") or "").strip()
         password = (data.get("password") or "").strip()
@@ -1403,10 +1612,21 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         if not admin or not verify_password(password, admin["password_hash"], admin["salt"]):
             conn.close()
-            return self.send_json({"error": "Invalid username or password"}, 401)
+            fail_count, lock_sec = login_limiter.record_failure(client_ip)
+            if lock_sec > 0:
+                return self.send_json({
+                    "error": "Account temporarily locked due to 5 consecutive failed login attempts. Please try again in 15 minutes."
+                }, 429)
+            attempts_left = login_limiter.max_attempts - fail_count
+            return self.send_json({
+                "error": f"Invalid username or password. {attempts_left} attempt(s) remaining before security lockout."
+            }, 401)
+
+        # Login successful -> reset rate limiter
+        login_limiter.record_success(client_ip)
 
         token = secrets.token_urlsafe(32)
-        expires_at = (datetime.now() + timedelta(days=7)).isoformat()
+        expires_at = (datetime.now() + timedelta(days=2)).isoformat()
         cursor.execute(
             "INSERT INTO sessions (token, admin_id, expires_at) VALUES (?, ?, ?)",
             (token, admin["id"], expires_at)
@@ -1414,6 +1634,18 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
         conn.commit()
         conn.close()
 
+        # Cache session immediately
+        _session_auth_cache[token] = {
+            "user": {
+                "token": token,
+                "id": admin["id"],
+                "username": admin["username"],
+                "name": admin["name"]
+            },
+            "expires": time.time() + 60
+        }
+
+        cookie_header = f"tarang_admin_token={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=172800"
         return self.send_json({
             "token": token,
             "user": {
@@ -1422,17 +1654,21 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
                 "name": admin["name"]
             },
             "expiresAt": expires_at
-        })
+        }, cookies=[cookie_header])
 
     def handle_auth_logout(self):
         user = authenticate_request(self.headers)
         if user:
+            token = user["token"]
+            invalidate_session_cache(token)
             conn = get_db()
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM sessions WHERE token = ?", (user["token"],))
+            cursor.execute("DELETE FROM sessions WHERE token = ?", (token,))
             conn.commit()
             conn.close()
-        return self.send_json({"success": True, "message": "Logged out successfully"})
+
+        clear_cookie = "tarang_admin_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict"
+        return self.send_json({"success": True, "message": "Logged out successfully"}, cookies=[clear_cookie])
 
     def handle_change_password(self, user):
         data = self.read_json_body()
@@ -1455,6 +1691,9 @@ class TarangRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         new_hash, new_salt = hash_password(new_pwd)
         cursor.execute("UPDATE admins SET password_hash = ?, salt = ? WHERE id = ?", (new_hash, new_salt, user["id"]))
+        # Invalidate old sessions except current one
+        invalidate_session_cache()
+        cursor.execute("DELETE FROM sessions WHERE admin_id = ? AND token != ?", (user["id"], user["token"]))
         conn.commit()
         conn.close()
         return self.send_json({"success": True, "message": "Password updated successfully"})

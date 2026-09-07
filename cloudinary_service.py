@@ -153,6 +153,29 @@ def sanitize_filename(name: str) -> str:
     base = re.sub(r'[^\w\.\-]', '_', base)
     return base or f"file_{uuid.uuid4().hex[:6]}.jpg"
 
+def get_transformed_url(url: str, width: int = 400, height: int = 400, crop: str = "limit") -> str:
+    """
+    Returns an optimized Cloudinary delivery URL with dimensions, auto-format, and auto-quality.
+    e.g. https://res.cloudinary.com/.../image/upload/f_auto,q_auto,w_400,c_limit/...
+    """
+    if not url or not isinstance(url, str) or not url.strip():
+        return url or ""
+    
+    url = url.strip()
+    if "res.cloudinary.com" in url and "/upload/" in url:
+        transform = f"f_auto,q_auto,w_{width},c_{crop}"
+        # If /upload/f_auto,q_auto/ or similar already exists, replace it cleanly
+        parts = url.split("/upload/")
+        if len(parts) == 2:
+            second_part = parts[1]
+            # Strip existing transform segment if present before v1...
+            if second_part.startswith("f_auto") or second_part.startswith("w_") or second_part.startswith("q_"):
+                sub_parts = second_part.split("/", 1)
+                if len(sub_parts) == 2:
+                    second_part = sub_parts[1]
+            return f"{parts[0]}/upload/{transform}/{second_part}"
+    return url
+
 def get_status() -> dict:
     """Returns Cloudinary integration status."""
     return {

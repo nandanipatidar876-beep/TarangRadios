@@ -421,6 +421,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="normalProductsPagination" class="pagination-bar" style="display: none;"></div>
           </div>
         </section>
 
@@ -539,6 +540,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="pricePagination" class="pagination-bar" style="display: none;"></div>
           </div>
         </section>
 
@@ -702,6 +704,24 @@
             </div>
 
             <div class="panel-card" style="margin-top: 1.5rem;">
+              <h4 style="margin-bottom: 0.5rem; color: var(--warm-orange);"><i data-lucide="key-round" style="width:18px; height:18px; vertical-align:middle;"></i> Price Hide / Unlock Passcode</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Set the secret passcode that customers/dealers must enter on the storefront to reveal hidden product prices.
+              </p>
+              
+              <form id="priceCodeForm" onsubmit="handleUpdatePriceCode(event)">
+                <div class="form-group">
+                  <label for="newPriceCodeInput">Secret Price Access Passcode</label>
+                  <input type="text" id="newPriceCodeInput" class="form-control" required placeholder="Enter secret passcode" />
+                </div>
+
+                <button type="submit" class="btn-primary" id="btnSavePriceCode">
+                  <i data-lucide="shield-check"></i> Save Price Passcode
+                </button>
+              </form>
+            </div>
+
+            <div class="panel-card" style="margin-top: 1.5rem;">
               <h4 style="margin-bottom: 0.5rem;">Database & Export Backup</h4>
               <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
                 Your catalog is backed by a centralized SQLite database (`tarang.db`).
@@ -757,10 +777,13 @@
 
         <div class="form-group">
           <label for="normalCatFormImage">Category Image</label>
-          <div style="display: flex; gap: 0.5rem;">
-            <input type="text" id="normalCatFormImage" class="form-control" placeholder="uploads/category.jpg" />
-            <button type="button" class="btn-secondary" onclick="document.getElementById('normalCatImageUpload').click()">Upload</button>
-            <input type="file" id="normalCatImageUpload" accept="image/*" style="display: none;" onchange="uploadSingleImage(event, 'normalCatFormImage')" />
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" id="normalCatFormImage" class="form-control" placeholder="uploads/category.jpg" oninput="updateNormalCatImagePreview(this.value)" />
+            <button type="button" class="btn-secondary" onclick="document.getElementById('normalCatImageUpload').click()">Upload Image</button>
+            <input type="file" id="normalCatImageUpload" accept="image/*" style="display: none;" onchange="uploadSingleImage(event, 'normalCatFormImage', updateNormalCatImagePreview)" />
+          </div>
+          <div id="normalCatImagePreviewBox" style="margin-top: 0.5rem; display: none;">
+            <img id="normalCatImagePreviewImg" src="" style="width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;" />
           </div>
         </div>
 
@@ -1083,6 +1106,6 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Admin Controller Script -->
-  <script src="admin.js"></script>
+  <script src="admin.js?v=4.0"></script>
 </body>
 </html>

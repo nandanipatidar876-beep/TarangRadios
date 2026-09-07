@@ -14,13 +14,23 @@ const state = {
   normalSubcategories: [],
   normalProducts: [],
 
+  // Normal Products Pagination
+  normalProdPage: 1,
+  normalProdTotalPages: 1,
+  normalProdTotal: 0,
+  normalProdLimit: 25,
+
   // "The Brands We Deal With"
   brands: [],
   activeBrandId: null,
   activeBrandHierarchy: null,
 
-  // All Products for Price Management
-  allProductsForPrice: [],
+  // Price Management Pagination
+  priceProducts: [],
+  pricePage: 1,
+  priceTotalPages: 1,
+  priceTotal: 0,
+  priceLimit: 25,
 
   // Bulk Uploads
   uploadedImagesMap: new Set(),
@@ -56,11 +66,23 @@ async function apiRequest(endpoint, method = 'GET', data = null, isFormData = fa
   }
 }
 
-// Image URL Formatter Helper
-function formatImgUrl(url) {
+// Image URL Formatter Helper with Cloudinary Transformations
+function formatImgUrl(url, size = 120) {
   if (!url || typeof url !== 'string' || !url.trim()) return 'https://via.placeholder.com/60';
   const trimmed = url.trim();
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.includes('res.cloudinary.com') && trimmed.includes('/upload/')) {
+    const parts = trimmed.split('/upload/');
+    if (parts.length === 2) {
+      let second = parts[1];
+      if (second.startsWith('f_auto') || second.startsWith('w_') || second.startsWith('q_')) {
+        const sub = second.split('/');
+        sub.shift();
+        second = sub.join('/');
+      }
+      return `${parts[0]}/upload/f_auto,q_auto,w_${size},h_${size},c_fill/${second}`;
+    }
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:')) return trimmed;
   if (trimmed.startsWith('/')) return trimmed;
   return `../${trimmed}`;
 }
@@ -246,6 +268,19 @@ function switchTab(tabId) {
   if (tabId === 'brands-management') loadTheBrandsWeDealWith();
   if (tabId === 'price-management') loadPriceManagementTable();
   if (tabId === 'bulk-images') loadMediaLibrary();
+  if (tabId === 'settings') loadSettingsData();
+}
+
+async function loadSettingsData() {
+  try {
+    const res = await apiRequest('/api/admin/price-code');
+    const input = document.getElementById('newPriceCodeInput');
+    if (input && res && res.code) {
+      input.value = res.code;
+    }
+  } catch (err) {
+    console.warn('Could not load current price code:', err);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -371,6 +406,18 @@ async function loadNormalCategoriesTable() {
   `).join('');
 }
 
+function updateNormalCatImagePreview(url) {
+  const box = document.getElementById('normalCatImagePreviewBox');
+  const img = document.getElementById('normalCatImagePreviewImg');
+  if (!box || !img) return;
+  if (url && url.trim()) {
+    img.src = url.startsWith('http') || url.startsWith('blob:') ? url : `../${url}`;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
 function openNormalCategoryModal(cat = null) {
   const modal = document.getElementById('normalCategoryModalOverlay');
   const title = document.getElementById('normalCatModalTitle');
@@ -381,6 +428,8 @@ function openNormalCategoryModal(cat = null) {
   document.getElementById('normalCatFormTagline').value = cat ? (cat.tagline || '') : '';
   document.getElementById('normalCatFormColor').value = cat ? (cat.color || '#D14B14') : '#D14B14';
   document.getElementById('normalCatFormImage').value = cat ? (cat.image || '') : '';
+
+  updateNormalCatImagePreview(cat ? (cat.image || '') : '');
 
   title.textContent = cat ? 'Edit Normal Category' : 'Add Normal Category';
   modal.classList.add('open');
@@ -397,6 +446,17 @@ function editNormalCategory(catId) {
 
 async function saveNormalCategory(e) {
   e.preventDefault();
+  const form = e.target;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const origHtml = submitBtn ? submitBtn.innerHTML : '';
+
+  if (activeImageUploadPromise) {
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = 'Finishing image upload...'; }
+    await activeImageUploadPromise;
+  }
+
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = 'Saving Category...'; }
+
   const id = document.getElementById('normalCatFormId').value;
   const data = {
     brandId: null, // Normal category has NO brand
@@ -416,10 +476,15 @@ async function saveNormalCategory(e) {
       showToast(`Category "${data.title}" created successfully.`);
     }
     closeNormalCategoryModal();
-    loadNormalCategoriesTable();
-    loadDashboardStats();
+    Promise.all([loadNormalCategoriesTable(), loadDashboardStats()]).catch(console.error);
   } catch (err) {
     showToast(err.message || 'Failed to save category.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origHtml || '<i data-lucide="save"></i> Save Category';
+      if (window.lucide) window.lucide.createIcons();
+    }
   }
 }
 
@@ -565,25 +630,66 @@ async function deleteNormalSubcategory(id, name) {
 // SECTION 3: NORMAL PRODUCTS CATALOG (ZERO BRANDS)
 // ===========================================================================
 let normalSearchTimeout = null;
+let normalProdAbortController = null;
+
 function debouncedSearchNormalProducts() {
   clearTimeout(normalSearchTimeout);
-  normalSearchTimeout = setTimeout(() => loadNormalProductsTable(), 300);
+  normalSearchTimeout = setTimeout(() => loadNormalProductsTable(1), 250);
 }
 
-async function loadNormalProductsTable() {
+function renderPaginationBar(containerId, currentPage, totalPages, totalItems, callbackFnName) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (totalItems <= 25 && totalPages <= 1) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'flex';
+  const hasPrev = currentPage > 1;
+  const hasNext = currentPage < totalPages;
+
+  container.innerHTML = `
+    <div class="pagination-info">
+      Showing <strong>Page ${currentPage}</strong> of <strong>${totalPages}</strong> (${totalItems} total products)
+    </div>
+    <div class="pagination-controls">
+      <button class="pagination-btn" ${!hasPrev ? 'disabled' : ''} onclick="${callbackFnName}(1)" title="First Page">« First</button>
+      <button class="pagination-btn" ${!hasPrev ? 'disabled' : ''} onclick="${callbackFnName}(${currentPage - 1})" title="Previous Page">‹ Prev</button>
+      <span style="font-weight: 700; padding: 0 0.5rem; color: var(--warm-orange);">${currentPage} / ${totalPages}</span>
+      <button class="pagination-btn" ${!hasNext ? 'disabled' : ''} onclick="${callbackFnName}(${currentPage + 1})" title="Next Page">Next ›</button>
+      <button class="pagination-btn" ${!hasNext ? 'disabled' : ''} onclick="${callbackFnName}(${totalPages})" title="Last Page">Last »</button>
+    </div>
+  `;
+}
+
+async function loadNormalProductsTable(page = 1) {
+  state.normalProdPage = page;
   const search = (document.getElementById('normalProductSearchInput')?.value || '').trim();
   const catId = document.getElementById('normalProductCategoryFilter')?.value || 'all';
   const subcat = document.getElementById('normalProductSubcategoryFilter')?.value || 'all';
   const sort = document.getElementById('normalProductSortFilter')?.value || 'date_desc';
 
-  let url = `/api/products?type=normal&sort=${sort}`;
+  let url = `/api/products?type=normal&sort=${sort}&page=${page}&limit=${state.normalProdLimit}`;
   if (catId && catId !== 'all') url += `&category_id=${encodeURIComponent(catId)}`;
   if (subcat && subcat !== 'all') url += `&subcategory=${encodeURIComponent(subcat)}`;
   if (search) url += `&q=${encodeURIComponent(search)}`;
 
   try {
-    state.normalProducts = await apiRequest(url);
+    const res = await apiRequest(url);
+    if (res && res.products) {
+      state.normalProducts = res.products;
+      state.normalProdTotal = res.total;
+      state.normalProdTotalPages = res.totalPages;
+      state.normalProdPage = res.page;
+    } else {
+      state.normalProducts = Array.isArray(res) ? res : [];
+      state.normalProdTotal = state.normalProducts.length;
+      state.normalProdTotalPages = 1;
+    }
     renderNormalProductsTable();
+    renderPaginationBar('normalProductsPagination', state.normalProdPage, state.normalProdTotalPages, state.normalProdTotal, 'loadNormalProductsTable');
   } catch (err) {
     console.error('Failed to load normal products:', err);
   }
@@ -601,7 +707,7 @@ function renderNormalProductsTable() {
   tbody.innerHTML = state.normalProducts.map(p => `
     <tr>
       <td>
-        <img src="${formatImgUrl(p.image)}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" />
+        <img src="${formatImgUrl(p.image, 100)}" class="table-img-thumb" loading="lazy" decoding="async" onerror="this.src='https://via.placeholder.com/60'" />
       </td>
       <td>
         <strong>${p.name}</strong>
@@ -705,8 +811,9 @@ function editNormalProduct(prodId) {
 function updateNormalProdImagePreview(url) {
   const box = document.getElementById('normalProdImagePreviewBox');
   const img = document.getElementById('normalProdImagePreviewImg');
+  if (!box || !img) return;
   if (url && url.trim()) {
-    img.src = url.startsWith('http') ? url : `../${url}`;
+    img.src = url.startsWith('http') || url.startsWith('blob:') ? url : `../${url}`;
     box.style.display = 'block';
   } else {
     box.style.display = 'none';
@@ -715,6 +822,17 @@ function updateNormalProdImagePreview(url) {
 
 async function saveNormalProduct(e) {
   e.preventDefault();
+  const form = e.target;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const origHtml = submitBtn ? submitBtn.innerHTML : '';
+
+  if (activeImageUploadPromise) {
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = 'Finishing image upload...'; }
+    await activeImageUploadPromise;
+  }
+
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = 'Saving Product...'; }
+
   const id = document.getElementById('normalProdFormId').value;
   const data = {
     name: document.getElementById('normalProdFormName').value.trim(),
@@ -738,10 +856,15 @@ async function saveNormalProduct(e) {
       showToast(`Product "${data.name}" created successfully.`);
     }
     closeNormalProductModal();
-    loadNormalProductsTable();
-    loadDashboardStats();
+    Promise.all([loadNormalProductsTable(), loadDashboardStats()]).catch(console.error);
   } catch (err) {
     showToast(err.message || 'Failed to save product.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origHtml || '<i data-lucide="save"></i> Save Product';
+      if (window.lucide) window.lucide.createIcons();
+    }
   }
 }
 
@@ -1205,8 +1328,9 @@ function closeBrandProductModal() {
 function updateBrandProdImagePreview(url) {
   const box = document.getElementById('brandProdImagePreviewBox');
   const img = document.getElementById('brandProdImagePreviewImg');
+  if (!box || !img) return;
   if (url && url.trim()) {
-    img.src = url.startsWith('http') ? url : `../${url}`;
+    img.src = url.startsWith('http') || url.startsWith('blob:') ? url : `../${url}`;
     box.style.display = 'block';
   } else {
     box.style.display = 'none';
@@ -1215,6 +1339,17 @@ function updateBrandProdImagePreview(url) {
 
 async function saveBrandProduct(e) {
   e.preventDefault();
+  const form = e.target;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const origHtml = submitBtn ? submitBtn.innerHTML : '';
+
+  if (activeImageUploadPromise) {
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = 'Finishing image upload...'; }
+    await activeImageUploadPromise;
+  }
+
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = 'Saving Product...'; }
+
   const id = document.getElementById('brandProdFormId').value;
   const brandId = document.getElementById('brandProdFormBrandId').value;
   const catId = document.getElementById('brandProdFormCatId').value;
@@ -1241,10 +1376,15 @@ async function saveBrandProduct(e) {
       showToast(`Product "${data.name}" added to ${state.brands.find(b => b.id === brandId)?.name || 'Brand'}.`);
     }
     closeBrandProductModal();
-    loadActiveBrandHierarchy(brandId);
-    loadDashboardStats();
+    Promise.all([loadActiveBrandHierarchy(brandId), loadDashboardStats()]).catch(console.error);
   } catch (err) {
     showToast(err.message || 'Failed to save brand product.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origHtml || '<i data-lucide="save"></i> Save Product';
+      if (window.lucide) window.lucide.createIcons();
+    }
   }
 }
 
@@ -1267,35 +1407,50 @@ async function deleteBrandProduct(prodId, name) {
 let priceSearchTimeout = null;
 function debouncedSearchPriceTable() {
   clearTimeout(priceSearchTimeout);
-  priceSearchTimeout = setTimeout(() => loadPriceManagementTable(), 300);
+  priceSearchTimeout = setTimeout(() => loadPriceManagementTable(1), 250);
 }
 
-async function loadPriceManagementTable() {
+async function loadPriceManagementTable(page = 1) {
+  state.pricePage = page;
   const search = (document.getElementById('priceSearchInput')?.value || '').trim();
   const scope = document.getElementById('priceScopeFilter')?.value || 'all';
 
-  let url = '/api/products?sort=date_desc';
+  let url = `/api/products?sort=date_desc&page=${page}&limit=${state.priceLimit}`;
   if (scope === 'normal') url += '&type=normal';
   if (search) url += `&q=${encodeURIComponent(search)}`;
 
   try {
-    let products = await apiRequest(url);
+    const res = await apiRequest(url);
+    let products = [];
+    if (res && res.products) {
+      products = res.products;
+      state.priceTotal = res.total;
+      state.priceTotalPages = res.totalPages;
+      state.pricePage = res.page;
+    } else {
+      products = Array.isArray(res) ? res : [];
+      state.priceTotal = products.length;
+      state.priceTotalPages = 1;
+    }
+
     if (scope === 'brands') {
       products = products.filter(p => p.brand_id);
     }
+    state.priceProducts = products;
 
     const tbody = document.getElementById('priceTableBody');
     if (!tbody) return;
 
     if (products.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No products found for price editing.</td></tr>`;
+      renderPaginationBar('pricePagination', 1, 1, 0, 'loadPriceManagementTable');
       return;
     }
 
     tbody.innerHTML = products.map(p => `
       <tr id="price-row-${p.id}">
         <td>
-          <img src="${formatImgUrl(p.image)}" class="table-img-thumb" onerror="this.src='https://via.placeholder.com/60'" />
+          <img src="${formatImgUrl(p.image, 100)}" class="table-img-thumb" loading="lazy" decoding="async" onerror="this.src='https://via.placeholder.com/60'" />
         </td>
         <td>
           <strong>${p.name}</strong>
@@ -1325,6 +1480,8 @@ async function loadPriceManagementTable() {
         </td>
       </tr>
     `).join('');
+
+    renderPaginationBar('pricePagination', state.pricePage, state.priceTotalPages, state.priceTotal, 'loadPriceManagementTable');
   } catch (err) {
     console.error('Failed to load price table:', err);
   }
@@ -1365,27 +1522,77 @@ async function saveQuickPrice(prodId) {
   }
 }
 
-// ===========================================================================
-// SECTION 6: BULK IMAGE & CSV PRODUCT IMPORT
-// ===========================================================================
+let activeImageUploadPromise = null;
+
 async function uploadSingleImage(event, targetInputId, callback = null) {
   const file = event.target.files[0];
   if (!file) return;
 
+  const fileInput = event.target;
+  const parentContainer = fileInput.parentElement;
+  const uploadBtn = parentContainer ? parentContainer.querySelector('button') : null;
+  const parentModal = fileInput.closest('.modal-overlay') || fileInput.closest('form');
+  const submitBtn = parentModal ? parentModal.querySelector('button[type="submit"]') : null;
+
+  const originalUploadBtnHtml = uploadBtn ? uploadBtn.innerHTML : '';
+  const originalSubmitBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+
+  // 1. Instant local preview (0ms latency so photo immediately appears in preview box)
+  try {
+    const localBlobUrl = URL.createObjectURL(file);
+    if (callback) callback(localBlobUrl);
+  } catch (e) {}
+
+  // 2. Visual loading state on buttons
+  if (uploadBtn) {
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = 'Uploading photo...';
+  }
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Uploading photo...';
+  }
+
   const formData = new FormData();
   formData.append('file', file);
 
-  try {
-    const res = await apiRequest('/api/upload/images', 'POST', formData, true);
-    if (res.files && res.files.length > 0) {
-      const imgUrl = res.files[0].url;
-      document.getElementById(targetInputId).value = imgUrl;
-      showToast(`Image "${res.files[0].filename}" uploaded!`);
-      if (callback) callback(imgUrl);
+  const uploadTask = (async () => {
+    try {
+      const res = await apiRequest('/api/upload/images', 'POST', formData, true);
+      if (res.files && res.files.length > 0) {
+        const imgUrl = res.files[0].url;
+        const targetInput = document.getElementById(targetInputId);
+        if (targetInput) targetInput.value = imgUrl;
+        showToast(`Photo "${res.files[0].filename}" uploaded to Cloud!`);
+        if (callback) callback(imgUrl);
+
+        if (uploadBtn) {
+          uploadBtn.disabled = false;
+          uploadBtn.innerHTML = '✓ Uploaded';
+          setTimeout(() => {
+            if (uploadBtn) uploadBtn.innerHTML = originalUploadBtnHtml || 'Upload Image';
+          }, 2000);
+        }
+      }
+    } catch (err) {
+      showToast(err.message || 'Image upload failed. Check connection.', 'error');
+      if (uploadBtn) {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = originalUploadBtnHtml || 'Upload Image';
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalSubmitBtnHtml || '<i data-lucide="save"></i> Save';
+        if (window.lucide) window.lucide.createIcons();
+      }
+      fileInput.value = '';
+      activeImageUploadPromise = null;
     }
-  } catch (err) {
-    showToast(err.message || 'Image upload failed.', 'error');
-  }
+  })();
+
+  activeImageUploadPromise = uploadTask;
+  await uploadTask;
 }
 
 function handleBulkImagesSelected(event) {
@@ -1691,6 +1898,37 @@ async function handleChangePassword(e) {
     document.getElementById('changePasswordForm').reset();
   } catch (err) {
     showToast(err.message || 'Failed to update password.', 'error');
+  }
+}
+
+async function handleUpdatePriceCode(e) {
+  e.preventDefault();
+  const input = document.getElementById('newPriceCodeInput');
+  const btn = document.getElementById('btnSavePriceCode');
+  const code = (input.value || '').trim();
+
+  if (!code) {
+    showToast('Please enter a valid price passcode.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = 'Saving...';
+
+  try {
+    const res = await apiRequest('/api/admin/price-code', 'POST', { code });
+    showToast(res.message || 'Price passcode updated successfully!');
+    btn.innerHTML = '✓ Saved';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="shield-check"></i> Save Price Passcode';
+      if (window.lucide) window.lucide.createIcons();
+    }, 1500);
+  } catch (err) {
+    showToast(err.message || 'Failed to update price passcode.', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="shield-check"></i> Save Price Passcode';
+    if (window.lucide) window.lucide.createIcons();
   }
 }
 

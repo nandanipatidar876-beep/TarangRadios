@@ -16,11 +16,12 @@ try:
 except ImportError:
     pass
 
-# PostgreSQL Driver Import
+# PostgreSQL Driver & Pool Import
 PSYCOPG2_AVAILABLE = False
 try:
     import psycopg2
     import psycopg2.extras
+    import psycopg2.pool
     PSYCOPG2_AVAILABLE = True
 except ImportError:
     try:
@@ -33,12 +34,37 @@ except ImportError:
 DB_FILE = os.path.join(os.path.dirname(__file__), "tarang.db")
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
+_PG_POOL = None
+
 def get_engine_type():
     """Returns 'postgres' if DATABASE_URL is configured, else 'sqlite'."""
     url = os.environ.get("DATABASE_URL", "").strip()
     if url and (url.startswith("postgres://") or url.startswith("postgresql://")):
         return "postgres"
     return "sqlite"
+
+def _get_pg_pool():
+    global _PG_POOL
+    if _PG_POOL is None or _PG_POOL.closed:
+        db_url = os.environ.get("DATABASE_URL", "").strip()
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        try:
+            _PG_POOL = psycopg2.pool.ThreadedConnectionPool(
+                minconn=2,
+                maxconn=15,
+                dsn=db_url,
+                cursor_factory=psycopg2.extras.RealDictCursor,
+                connect_timeout=10,
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5
+            )
+        except Exception as e:
+            print(f"[DB ERROR] Could not initialize PostgreSQL pool: {e}")
+            _PG_POOL = None
+    return _PG_POOL
 
 class DBCursorWrapper:
     """Cursor wrapper that normalizes parameter placeholders and row access."""
@@ -64,7 +90,6 @@ class DBCursorWrapper:
                 import psycopg2.extras
                 return psycopg2.extras.execute_batch(self.cursor, formatted_sql, params_seq, page_size=200)
             except Exception as e:
-                # Fallback to standard executemany if execute_batch fails
                 pass
         return self.cursor.executemany(formatted_sql, params_seq)
 
@@ -102,9 +127,10 @@ class DBCursorWrapper:
 
 class DBConnectionWrapper:
     """Unified wrapper around PostgreSQL and SQLite connections."""
-    def __init__(self, raw_conn, engine_type):
+    def __init__(self, raw_conn, engine_type, from_pool=False):
         self.conn = raw_conn
         self.engine_type = engine_type
+        self.from_pool = from_pool
 
     def cursor(self):
         raw_cur = self.conn.cursor()
@@ -151,6 +177,11 @@ class DBConnectionWrapper:
 
     def close(self):
         try:
+            if self.from_pool and self.engine_type == "postgres":
+                pool = _get_pg_pool()
+                if pool and not pool.closed:
+                    pool.putconn(self.conn)
+                    return
             self.conn.close()
         except Exception:
             pass
@@ -165,35 +196,67 @@ class DBConnectionWrapper:
             self.commit()
         self.close()
 
+def _is_pg_alive(conn):
+    """Verifies that a PostgreSQL connection is truly alive and responsive."""
+    try:
+        if conn is None or conn.closed != 0:
+            return False
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+        conn.commit()
+        return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return False
+
 def create_connection():
-    """Creates a raw DB connection based on configuration."""
+    """Creates a raw DB connection or retrieves from pool with automatic liveness verification."""
     engine = get_engine_type()
-    db_url = os.environ.get("DATABASE_URL", "").strip()
 
     if engine == "postgres":
         if not PSYCOPG2_AVAILABLE:
-            print("[DB WARNING] DATABASE_URL is set, but 'psycopg2-binary' is not installed. Falling back to SQLite.")
-            return _create_sqlite_connection(), "sqlite"
+            return _create_sqlite_connection(), "sqlite", False
+        pool = _get_pg_pool()
+        if pool:
+            try:
+                conn = pool.getconn()
+                if not _is_pg_alive(conn):
+                    try:
+                        pool.putconn(conn, close=True)
+                    except Exception:
+                        pass
+                    conn = pool.getconn()
+                    if not _is_pg_alive(conn):
+                        try:
+                            pool.putconn(conn, close=True)
+                        except Exception:
+                            pass
+                        raise Exception("Pooled connection failed liveness check")
+                conn.autocommit = False
+                return conn, "postgres", True
+            except Exception as err:
+                print(f"[DB POOL] Reconnecting: {err}")
+        
+        # Direct fallback if pool fails
         try:
+            db_url = os.environ.get("DATABASE_URL", "").strip()
             if db_url.startswith("postgres://"):
                 db_url = db_url.replace("postgres://", "postgresql://", 1)
-            
             conn = psycopg2.connect(
                 db_url,
                 cursor_factory=psycopg2.extras.RealDictCursor,
-                connect_timeout=10,
-                keepalives=1,
-                keepalives_idle=30,
-                keepalives_interval=10,
-                keepalives_count=5
+                connect_timeout=8
             )
             conn.autocommit = False
-            return conn, "postgres"
+            return conn, "postgres", False
         except Exception as err:
-            print(f"[DB ERROR] Failed to connect to PostgreSQL: {err}. Falling back to SQLite.")
-            return _create_sqlite_connection(), "sqlite"
+            print(f"[DB ERROR] PostgreSQL connection failed: {err}. Falling back to SQLite.")
+            return _create_sqlite_connection(), "sqlite", False
     else:
-        return _create_sqlite_connection(), "sqlite"
+        return _create_sqlite_connection(), "sqlite", False
 
 def _create_sqlite_connection():
     conn = sqlite3.connect(DB_FILE)
@@ -204,8 +267,8 @@ def _create_sqlite_connection():
 
 def get_db():
     """Returns a unified DBConnectionWrapper instance."""
-    raw_conn, engine = create_connection()
-    return DBConnectionWrapper(raw_conn, engine)
+    raw_conn, engine, from_pool = create_connection()
+    return DBConnectionWrapper(raw_conn, engine, from_pool)
 
 def get_status():
     """Returns status info about the current active database."""

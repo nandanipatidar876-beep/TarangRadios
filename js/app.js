@@ -87,10 +87,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
 
-  // Image URL Formatter Helper
-  function formatImageUrl(img) {
-    if (!img) return 'https://via.placeholder.com/600';
-    return img;
+  // Image URL Formatter Helper with Cloudinary Auto-Transformations
+  function formatImageUrl(img, width = 450, crop = 'limit') {
+    if (!img || typeof img !== 'string' || !img.trim()) return 'https://via.placeholder.com/450';
+    const trimmed = img.trim();
+    if (trimmed.includes('res.cloudinary.com') && trimmed.includes('/upload/')) {
+      const parts = trimmed.split('/upload/');
+      if (parts.length === 2) {
+        let second = parts[1];
+        if (second.startsWith('f_auto') || second.startsWith('w_') || second.startsWith('q_')) {
+          const sub = second.split('/');
+          sub.shift();
+          second = sub.join('/');
+        }
+        return `${parts[0]}/upload/f_auto,q_auto,w_${width},c_${crop}/${second}`;
+      }
+    }
+    return trimmed;
   }
 
   // Price Display Helper (Protected by Access Code)
@@ -106,30 +119,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- PRICE ACCESS STATUS & PASSCODE CONTROLLERS ---
   function updatePriceAccessUI() {
-    const badge = document.getElementById('priceStatusBadge');
-    const icon = document.getElementById('priceStatusIcon');
-    const text = document.getElementById('priceStatusText');
-    const sub = document.getElementById('priceAccessSub');
     const btn = document.getElementById('priceAccessActionBtn');
     const btnText = document.getElementById('priceActionBtnText');
     const svgLock = document.getElementById('priceActionSvgLock');
     const svgUnlock = document.getElementById('priceActionSvgUnlock');
 
     if (state.priceUnlocked) {
-      if (badge) badge.classList.add('unlocked');
-      if (icon) icon.textContent = '🔓';
-      if (text) text.textContent = 'Prices Unlocked';
-      if (sub) sub.textContent = 'Authorized component pricing is visible across site.';
-      if (btn) btn.classList.add('locked-state');
+      if (btn) btn.classList.add('unlocked-state');
       if (btnText) btnText.textContent = 'Lock Prices';
       if (svgLock) svgLock.style.display = 'none';
       if (svgUnlock) svgUnlock.style.display = 'inline-block';
     } else {
-      if (badge) badge.classList.remove('unlocked');
-      if (icon) icon.textContent = '🔒';
-      if (text) text.textContent = 'Prices Protected';
-      if (sub) sub.textContent = 'Enter secret access code to reveal product pricing.';
-      if (btn) btn.classList.remove('locked-state');
+      if (btn) btn.classList.remove('unlocked-state');
       if (btnText) btnText.textContent = 'Unlock Prices';
       if (svgLock) svgLock.style.display = 'inline-block';
       if (svgUnlock) svgUnlock.style.display = 'none';
@@ -230,25 +231,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         input.select();
       }
     } catch (err) {
-      // Offline fallback: check default code 1972
-      if (entered === '1972') {
-        state.priceUnlocked = true;
-        state.priceHidden = false;
-        localStorage.setItem('tarang_price_unlocked', 'true');
-        localStorage.setItem('tarang_price_hidden', 'false');
-        updatePriceAccessUI();
-        renderWishlist();
-        renderCart();
-        if (state.selectedCategoryForModal || state.selectedBrandForModal) {
-          renderModalProducts();
-        }
-        window.closePricePasscodeModal();
-        showCartToast('Access Authorized: Prices Unlocked!', 'Product pricing is now visible');
-      } else {
-        if (errorBox) {
-          errorBox.textContent = 'Invalid passcode. Please try again or contact support.';
-          errorBox.style.display = 'block';
-        }
+      if (errorBox) {
+        errorBox.textContent = 'Connection error. Please try again.';
+        errorBox.style.display = 'block';
       }
     } finally {
       if (submitBtn) submitBtn.disabled = false;
@@ -613,7 +598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       return `
         <div class="cart-item-card" id="cartItem_${p.id}">
-          <img src="${formatImageUrl(p.image)}" alt="${p.name}" class="cart-item-img" onerror="this.src='https://via.placeholder.com/60'" />
+          <img src="${formatImageUrl(p.image, 140)}" alt="${p.name}" loading="lazy" decoding="async" class="cart-item-img" onerror="this.src='https://via.placeholder.com/60'" />
           <div class="cart-item-details">
             <h5 class="cart-item-title" title="${p.name}">${p.name}</h5>
             <div class="cart-item-meta">
@@ -752,7 +737,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const items = window.TARANG_DATA.products.filter(p => state.wishlist.includes(p.id));
     wishlistItemsContainer.innerHTML = items.map(p => `
       <div style="display: flex; gap: 1rem; padding: 1rem; background: #FFF8EA; border: 2px solid var(--honey-yellow); border-radius: var(--radius-sm); margin-bottom: 0.85rem; align-items: center;">
-        <img src="${formatImageUrl(p.image)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm);" onerror="this.src='https://via.placeholder.com/60'" />
+        <img src="${formatImageUrl(p.image, 140)}" alt="${p.name}" loading="lazy" decoding="async" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm);" onerror="this.src='https://via.placeholder.com/60'" />
         <div style="flex: 1;">
           <h5 style="font-size: 0.95rem; color: var(--text-main); line-height: 1.2; font-weight: 700;">${p.name}</h5>
           ${state.priceUnlocked ? `<div style="color:var(--warm-orange); font-weight:800; font-size:0.95rem;">₹${(Number(p.price) || 95).toLocaleString('en-IN')}</div>` : ''}
@@ -766,41 +751,53 @@ document.addEventListener('DOMContentLoaded', async () => {
     toggleWishlist(id);
   };
 
-  // --- LIVE SEARCH BAR ---
+  // --- LIVE SEARCH BAR WITH DEBOUNCING ---
+  let searchDebounceTimer = null;
   if (searchInput && searchResultsDropdown) {
     searchInput.addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      state.searchQuery = q;
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        const q = e.target.value.toLowerCase().trim();
+        state.searchQuery = q;
 
-      if (!q) {
-        searchResultsDropdown.classList.remove('active');
-        return;
-      }
+        if (!q) {
+          searchResultsDropdown.classList.remove('active');
+          return;
+        }
 
-      const matches = window.TARANG_DATA.products.filter(p => 
-        (p.name && p.name.toLowerCase().includes(q)) ||
-        (p.sku && p.sku.toLowerCase().includes(q)) ||
-        (p.brand && p.brand.toLowerCase().includes(q)) ||
-        (p.subcategory && p.subcategory.toLowerCase().includes(q)) ||
-        (p.categoryId && p.categoryId.toLowerCase().includes(q))
-      );
+        const prods = window.TARANG_DATA.products || [];
+        const matches = [];
+        for (let i = 0; i < prods.length; i++) {
+          const p = prods[i];
+          if (
+            (p.name && p.name.toLowerCase().includes(q)) ||
+            (p.sku && p.sku.toLowerCase().includes(q)) ||
+            (p.brand && p.brand.toLowerCase().includes(q)) ||
+            (p.subcategory && p.subcategory.toLowerCase().includes(q)) ||
+            (p.categoryId && p.categoryId.toLowerCase().includes(q))
+          ) {
+            matches.push(p);
+            if (matches.length >= 15) break; // Cap to top 15 for instant rendering
+          }
+        }
 
-      if (matches.length === 0) {
-        searchResultsDropdown.innerHTML = `<div style="padding: 1rem; color: var(--text-muted); text-align: center; font-weight: 600;">No matching products found for "${q}"</div>`;
-      } else {
-        searchResultsDropdown.innerHTML = matches.map(p => `
-          <div class="search-item" onclick="window.selectSearchProduct('${p.id}')">
-            <img src="${formatImageUrl(p.image)}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/60'" />
-            <div style="flex:1;">
-              <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">${p.name}</div>
-              <div style="font-size: 0.75rem; color: var(--warm-orange); font-weight: 700;">${p.subcategory || 'General'}</div>
-              ${state.priceUnlocked ? `<div style="color:var(--warm-orange); font-weight:800; font-size:0.85rem;">₹${(Number(p.price) || 95).toLocaleString('en-IN')}</div>` : ''}
+        if (matches.length === 0) {
+          searchResultsDropdown.innerHTML = `<div style="padding: 1rem; color: var(--text-muted); text-align: center; font-weight: 600;">No matching products found for "${q}"</div>`;
+        } else {
+          searchResultsDropdown.innerHTML = matches.map(p => `
+            <div class="search-item" onclick="window.selectSearchProduct('${p.id}')">
+              <img src="${formatImageUrl(p.image, 120)}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.src='https://via.placeholder.com/60'" />
+              <div style="flex:1;">
+                <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">${p.name}</div>
+                <div style="font-size: 0.75rem; color: var(--warm-orange); font-weight: 700;">${p.subcategory || 'General'}</div>
+                ${state.priceUnlocked ? `<div style="color:var(--warm-orange); font-weight:800; font-size:0.85rem;">₹${(Number(p.price) || 95).toLocaleString('en-IN')}</div>` : ''}
+              </div>
             </div>
-          </div>
-        `).join('');
-      }
+          `).join('');
+        }
 
-      searchResultsDropdown.classList.add('active');
+        searchResultsDropdown.classList.add('active');
+      }, 150);
     });
 
     document.addEventListener('click', (e) => {
@@ -940,7 +937,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       : null;
 
     if (displayImg) {
-      displayImg.src = formatImageUrl(p ? p.image : imgUrl);
+      displayImg.src = formatImageUrl(p ? p.image : imgUrl, 1200);
       displayImg.alt = p ? p.name : (caption || 'Product View');
     }
 
@@ -1318,7 +1315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `
       <div class="subcat-product-card" onclick="window.openImageZoomModal('${p.image}', '${safeName}', '${p.id}')">
         <div class="subcat-card-img-container">
-          <img src="${formatImageUrl(p.image)}" alt="${p.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/600'" />
+          <img src="${formatImageUrl(p.image, 450)}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.src='https://via.placeholder.com/450'" />
           <button class="card-wishlist-btn ${isWishlisted ? 'active' : ''}" title="${isWishlisted ? 'Selected in Wishlist' : 'Select to Wishlist'}" onclick="event.stopPropagation(); window.toggleProductWishlist('${p.id}')">
             ♥
           </button>
@@ -1542,11 +1539,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             observer.unobserve(aboutSection);
           }
         });
-      }, { threshold: 0.2 });
+      }, { threshold: 0.1 });
 
       observer.observe(aboutSection);
+    } else {
+      aboutSection.classList.add('about-in-view');
     }
   };
+
+  // Initialize About section interactive features
+  initAboutSectionAnimations();
 
   // Render initial fallback dataset immediately
   renderCategoriesGrid();

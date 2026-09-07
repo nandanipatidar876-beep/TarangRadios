@@ -50,5 +50,7 @@ cloudinary_kushiro_cache.json
 Thumbs.db
 desktop.ini
 
-# Logs
+# Logs & Scratch
 *.log
+cloudflared.exe
+scratch/
